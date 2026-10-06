@@ -1,0 +1,71 @@
+/*
+ * Tokens de diseño de la plataforma (sdd/mvp/design-reference.md §13).
+ * Ningún componente usa colores, tamaños ni sombras sueltos: solo estas variables.
+ * Si un valor cambia, se cambia aquí y en design-reference.md.
+ */
+:root {
+  /* Marca */
+  --color-marca: #225380;
+  --color-marca-hover: #0f4a7b;
+  --color-marca-tinte: #ecf5fe;
+  --color-vino: #652b46;
+  --degradado-marca: linear-gradient(90deg, #9f472a, #c47844 22%, #c5925f 40%, #497398 60%, #6aa9d3 78%, #652b46);
+
+  /* Neutros (fríos, con un toque del azul Bonn) */
+  --gris-50: #f8fafd;  --gris-100: #f0f4f7; --gris-200: #e4e8ed; --gris-300: #cfd5db;
+  --gris-400: #9fa5ac; --gris-500: #6e757d; --gris-600: #4c535b; --gris-800: #262f38;
+  --gris-900: #131c24;
+
+  /* Superficies y texto */
+  --fondo: #ffffff;
+  --fondo-secundario: var(--gris-50);
+  --texto: var(--gris-900);
+  --texto-secundario: var(--gris-600);
+  --texto-terciario: var(--gris-500);
+  --borde: var(--gris-300);
+  --borde-suave: var(--gris-200);
+
+  /* Estados */
+  --color-exito: #287c42;   --color-exito-fondo: #e6fae9;
+  --color-aviso: #7e6f04;   --color-aviso-fondo: #f8f4de;
+  --color-critico: #bb0916; --color-critico-fondo: #fef0ee;
+  --color-info: var(--color-marca); --color-info-fondo: var(--color-marca-tinte);
+
+  /* Gráficas: series en orden fijo (máx. 5; dispersión máx. 3) */
+  --serie-1: #1060a0; --serie-2: #c48139; --serie-3: #993e6a; --serie-4: #c66a25; --serie-5: #3a92c7;
+  /* Magnitud (claro → oscuro) */
+  --seq-1: #8fb9e3; --seq-2: #669dd3; --seq-3: #3d81c1; --seq-4: #1966a7; --seq-5: #014f88;
+  /* Comparación: mejora (azul) · sin cambio (gris) · empeora (cobre) */
+  --div-mejor-3: #004f89; --div-mejor-2: #266caa; --div-mejor-1: #5a91c6; --div-mejor-0: #8cb6df;
+  --div-neutro: #e4e8ed;
+  --div-peor-0: #e1aa88; --div-peor-1: #c47640; --div-peor-2: #a14f05; --div-peor-3: #783901;
+
+  /* Tipografía */
+  --fuente-interfaz: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fuente-marca: 'Spectral', Georgia, 'Times New Roman', serif;
+  --texto-xs: 0.75rem;  --texto-sm: 0.875rem; --texto-base: 1rem; --texto-lg: 1.125rem;
+  --texto-xl: 1.375rem; --texto-2xl: 1.75rem; --texto-3xl: 2.125rem;
+  --titulo-pagina: 2.25rem; --titulo-marca: 3rem;
+
+  /* Espacio */
+  --esp-1: 4px; --esp-2: 8px; --esp-3: 12px; --esp-4: 16px; --esp-5: 20px; --esp-6: 24px;
+  --esp-8: 32px; --esp-10: 40px; --esp-12: 48px; --esp-16: 64px;
+
+  /* Forma y profundidad */
+  --radio-pildora: 999px; --radio-md: 12px; --radio-sm: 6px;
+  --sombra-1: 0 1px 2px rgb(19 28 36 / 0.06), 0 2px 8px rgb(19 28 36 / 0.06);
+  --sombra-2: 0 4px 12px rgb(19 28 36 / 0.08), 0 12px 32px rgb(19 28 36 / 0.10);
+  --foco: 0 0 0 2px var(--fondo), 0 0 0 4px var(--color-marca);
+
+  /* Movimiento */
+  --dur-rapida: 150ms; --dur-media: 200ms; --dur-lenta: 250ms;
+  --curva-salida: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Estructura */
+  --ancho-barra-lateral: 248px; --alto-barra-superior: 64px;
+  --ancho-contenido: 1280px; --ancho-lectura: 70ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-rapida: 0ms; --dur-media: 0ms; --dur-lenta: 0ms; }
+}

@@ -1,0 +1,80 @@
+.menu {
+  position: relative;
+  display: inline-block;
+}
+
+.boton {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--texto-secundario);
+  cursor: pointer;
+}
+
+.boton:hover,
+.boton[aria-expanded='true'] {
+  background: var(--gris-200);
+  color: var(--texto);
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.lista {
+  position: fixed;
+  z-index: 30;
+  min-width: 232px;
+  margin: 0;
+  padding: var(--esp-2);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+  box-shadow: var(--sombra-2);
+  list-style: none;
+  text-align: left;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--esp-3);
+  border: 0;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--texto);
+  font-size: var(--texto-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.opcion svg {
+  flex-shrink: 0;
+  color: var(--texto-secundario);
+}
+
+.opcion:hover {
+  background: var(--gris-100);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: -2px;
+}
+
+.peligro,
+.peligro svg {
+  color: var(--color-critico);
+}

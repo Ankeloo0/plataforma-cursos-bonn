@@ -1,0 +1,44 @@
+# Dependencias y compilados (backend/ y frontend/)
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Variables de entorno: NUNCA se suben. Solo los .env.example.
+.env
+.env.*
+!.env.example
+
+# Almacenamiento local de archivos al correr la API fuera de Docker
+backend/storage-local/
+
+# Respaldos
+infra/backups/
+
+# Logs y sistema
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Herramientas de IA y de diseño (no forman parte de la aplicación)
+.claude/
+.impeccable/
+
+# Planificación y documentación interna (no se publican)
+sdd/
+PRODUCT.md
+DESIGN.md
+provisional.md
+CHANGELOG.md
+infra/GUIA-DOCKER.md
+
+# Llaves, certificados y volcados de base de datos
+*.pem
+*.key
+*.crt
+*.p12
+*.sql.gz
+*.dump

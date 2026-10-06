@@ -1,0 +1,42 @@
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--gris-100);
+  color: var(--fondo);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.t24 {
+  width: 24px;
+  height: 24px;
+  font-size: 0.625rem;
+}
+
+.t32 {
+  width: 32px;
+  height: 32px;
+  font-size: var(--texto-xs);
+}
+
+.t40 {
+  width: 40px;
+  height: 40px;
+  font-size: var(--texto-sm);
+}
+
+.t96 {
+  width: 96px;
+  height: 96px;
+  font-size: var(--texto-2xl);
+}
+
+.superpuesto {
+  box-shadow: 0 0 0 2px var(--fondo);
+}

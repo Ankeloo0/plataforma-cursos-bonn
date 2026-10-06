@@ -1,0 +1,32 @@
+.alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--radio-sm);
+  font-size: var(--texto-sm);
+  line-height: 1.45;
+}
+
+.alerta svg {
+  flex-shrink: 0;
+}
+
+.alerta p {
+  padding-top: 1px;
+}
+
+.critico {
+  background: var(--color-critico-fondo);
+  color: var(--color-critico);
+}
+
+.exito {
+  background: var(--color-exito-fondo);
+  color: var(--color-exito);
+}
+
+.info {
+  background: var(--color-info-fondo);
+  color: var(--color-info);
+}

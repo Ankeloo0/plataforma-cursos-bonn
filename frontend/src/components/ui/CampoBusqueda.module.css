@@ -1,0 +1,76 @@
+.campo {
+  position: relative;
+  width: min(320px, 100%);
+}
+
+.icono {
+  position: absolute;
+  top: 50%;
+  left: var(--esp-3);
+  color: var(--texto-secundario);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.control {
+  width: 100%;
+  height: 40px;
+  padding: 0 40px 0 44px;
+  border: 0;
+  border-bottom: 1.5px solid var(--gris-300);
+  border-radius: var(--radio-sm) var(--radio-sm) 0 0;
+  background: var(--gris-100);
+  color: var(--texto);
+  outline: none;
+  transition: background-color var(--dur-rapida) var(--curva-salida), border-color var(--dur-rapida) var(--curva-salida);
+}
+
+.control::placeholder {
+  color: var(--texto-terciario);
+}
+
+.control::-webkit-search-cancel-button {
+  display: none;
+}
+
+.control:hover {
+  border-bottom-color: var(--gris-500);
+}
+
+.control:focus {
+  border-bottom-color: var(--color-marca);
+  box-shadow: 0 0.5px 0 var(--color-marca);
+  background: var(--fondo);
+}
+
+.limpiar {
+  position: absolute;
+  top: 50%;
+  right: var(--esp-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--texto-secundario);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.limpiar:hover {
+  background: var(--gris-200);
+}
+
+.limpiar:focus-visible {
+  outline: 2px solid var(--color-marca);
+}
+
+@media (max-width: 639px) {
+  .campo {
+    width: 100%;
+  }
+}

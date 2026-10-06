@@ -1,0 +1,119 @@
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  height: 40px;
+  padding: 0 var(--esp-5);
+  border: 1.5px solid transparent;
+  border-radius: var(--radio-pildora);
+  font-size: var(--texto-base);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-rapida) var(--curva-salida),
+    border-color var(--dur-rapida) var(--curva-salida),
+    color var(--dur-rapida) var(--curva-salida);
+}
+
+/* Foco solo con teclado: anillo de 2 px con 2 px de separación */
+.boton:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+/* ── Tamaños ─────────────────────────────── */
+.compacto {
+  height: 32px;
+  padding: 0 var(--esp-4);
+}
+
+.grande {
+  height: 48px;
+  padding: 0 var(--esp-6);
+}
+
+/* ── Variantes ───────────────────────────── */
+.primario {
+  background: var(--color-marca);
+  color: var(--fondo);
+}
+
+.primario:not([aria-disabled]):hover,
+.primario:not([aria-disabled]):active {
+  background: var(--color-marca-hover);
+}
+
+.secundario {
+  background: var(--fondo);
+  border-color: var(--color-marca);
+  color: var(--color-marca);
+}
+
+.secundario:not([aria-disabled]):hover,
+.secundario:not([aria-disabled]):active {
+  background: var(--color-marca-tinte);
+}
+
+.texto {
+  height: auto;
+  padding: var(--esp-1) var(--esp-1);
+  background: transparent;
+  color: var(--color-marca);
+}
+
+.texto:not([aria-disabled]):hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.texto:not([aria-disabled]):active {
+  color: var(--color-marca-hover);
+}
+
+.peligro {
+  background: var(--color-critico);
+  color: var(--fondo);
+}
+
+.peligro:not([aria-disabled]):hover,
+.peligro:not([aria-disabled]):active {
+  background: color-mix(in srgb, var(--color-critico) 82%, black);
+}
+
+/* ── Estados ─────────────────────────────── */
+.boton[data-estado='deshabilitado'] {
+  background: var(--gris-200);
+  border-color: transparent;
+  color: var(--gris-500);
+  cursor: default;
+}
+
+.texto[data-estado='deshabilitado'] {
+  background: transparent;
+}
+
+/* Cargando: conserva sus colores, pero no responde */
+.boton[data-estado='cargando'] {
+  cursor: progress;
+}
+
+.indicador {
+  flex-shrink: 0;
+  animation: girar 800ms linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicador {
+    animation: none;
+  }
+}

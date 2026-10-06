@@ -1,0 +1,94 @@
+.pantalla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--fondo);
+}
+
+/* Panel azul mientras no haya fotos de las sucursales (P-54) ni logotipo en blanco (P-52) */
+.marca {
+  display: flex;
+  align-items: flex-end;
+  padding: var(--esp-16);
+  background: var(--color-marca);
+  color: var(--fondo);
+}
+
+.marcaTexto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  max-width: 28rem;
+}
+
+.marcaNombre {
+  font-size: var(--texto-3xl);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.marcaLinea {
+  font-size: var(--texto-lg);
+  font-weight: 400;
+  line-height: 1.45;
+  /* Texto secundario teñido del mismo azul, no gris: 6.0:1 sobre --color-marca */
+  color: color-mix(in srgb, var(--fondo) 82%, var(--color-marca));
+  text-wrap: pretty;
+}
+
+.acceso {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--esp-12) var(--esp-8);
+}
+
+/* Trazo del auto: unica aparicion del degradado en esta pantalla (design-reference 3.3) */
+.acceso::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--degradado-marca);
+}
+
+.contenido {
+  width: 100%;
+  max-width: 400px;
+}
+
+.logo {
+  display: block;
+  width: auto;
+  height: 64px;
+  margin-bottom: var(--esp-12);
+}
+
+@media (max-width: 1023px) {
+  .marca {
+    padding: var(--esp-10);
+  }
+}
+
+@media (max-width: 639px) {
+  .pantalla {
+    grid-template-columns: 1fr;
+  }
+
+  .marca {
+    display: none;
+  }
+
+  .acceso {
+    align-items: flex-start;
+    padding: var(--esp-10) var(--esp-4) var(--esp-12);
+  }
+
+  .logo {
+    height: 56px;
+    margin-bottom: var(--esp-10);
+  }
+}

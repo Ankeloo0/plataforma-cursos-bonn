@@ -1,0 +1,177 @@
+.contenedor {
+  overflow-x: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--texto-sm);
+}
+
+.tabla th {
+  height: 44px;
+  padding: 0 var(--esp-4);
+  background: var(--fondo-secundario);
+  border-bottom: 1px solid var(--borde);
+  color: var(--gris-800);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabla td {
+  height: 52px;
+  padding: var(--esp-2) var(--esp-4);
+  border-bottom: 1px solid var(--borde-suave);
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla tbody tr {
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.tabla tbody tr:hover {
+  background: var(--fondo-secundario);
+}
+
+.tabla .numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla .acciones {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Fila completa clicable: el enlace principal cubre la fila */
+.filaEnlace {
+  position: relative;
+  cursor: pointer;
+}
+
+.enlaceFila {
+  color: var(--texto);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.enlaceFila::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.enlaceFila:focus-visible {
+  outline: none;
+}
+
+.enlaceFila:focus-visible::after {
+  outline: 2px solid var(--color-marca);
+  outline-offset: -2px;
+}
+
+.secundario {
+  display: block;
+  margin-top: 2px;
+  color: var(--texto-secundario);
+  font-weight: 400;
+}
+
+.persona {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+@media (max-width: 639px) {
+  .contenedor {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .tabla,
+  .tabla tbody,
+  .tabla tr,
+  .tabla td {
+    display: block;
+  }
+
+  .tabla tbody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-3);
+  }
+
+  .tabla tbody tr {
+    padding: var(--esp-3) var(--esp-4);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-md);
+  }
+
+  .tabla td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-4);
+    height: auto;
+    min-height: 36px;
+    padding: var(--esp-1) 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .tabla td[data-etiqueta]::before {
+    content: attr(data-etiqueta);
+    color: var(--texto-secundario);
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .tabla td:first-child {
+    display: block;
+    padding-bottom: var(--esp-2);
+    text-align: left;
+  }
+
+  .tabla .acciones {
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .tabla tbody tr:has(.soloMenu) {
+    position: relative;
+  }
+
+  .tabla tbody tr:has(.soloMenu) td:first-child {
+    padding-right: 56px;
+  }
+
+  .tabla .soloMenu {
+    position: absolute;
+    top: var(--esp-2);
+    right: var(--esp-2);
+    min-height: 0;
+    padding: 0;
+  }
+
+  .tabla .soloMenu button {
+    width: 44px;
+    height: 44px;
+  }
+}

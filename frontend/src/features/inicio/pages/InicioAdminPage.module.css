@@ -1,0 +1,11 @@
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  margin-bottom: var(--esp-10);
+}
+
+.alcance {
+  font-size: var(--texto-lg);
+  color: var(--texto-secundario);
+}

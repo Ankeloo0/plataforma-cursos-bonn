@@ -1,0 +1,143 @@
+.titulo {
+  margin-bottom: var(--esp-10);
+}
+
+.contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-12);
+  max-width: 720px;
+}
+
+.foto {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-6);
+}
+
+.fotoControles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.ayuda,
+.error {
+  font-size: var(--texto-sm);
+  line-height: 1.45;
+}
+
+.ayuda {
+  color: var(--texto-terciario);
+}
+
+.error {
+  color: var(--color-critico);
+}
+
+.seccionTitulo {
+  margin-bottom: var(--esp-4);
+  font-size: var(--texto-xl);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--esp-5) var(--esp-8);
+  margin: 0;
+  padding: var(--esp-6);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md);
+  background: var(--fondo-secundario);
+}
+
+.datos dt {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  color: var(--texto-secundario);
+}
+
+.datos dd {
+  margin: var(--esp-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.nota {
+  margin-top: var(--esp-3);
+  font-size: var(--texto-sm);
+  color: var(--texto-terciario);
+}
+
+/* Enlace con la forma del boton secundario (navega, por eso no es un button) */
+.enlaceBoton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  height: 40px;
+  margin-top: var(--esp-5);
+  padding: 0 var(--esp-5);
+  border: 1.5px solid var(--color-marca);
+  border-radius: var(--radio-pildora);
+  background: var(--fondo);
+  color: var(--color-marca);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.enlaceBoton:hover {
+  background: var(--color-marca-tinte);
+}
+
+.enlaceBoton:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.cargando {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+
+.errorCarga {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--esp-3);
+}
+
+@media (max-width: 639px) {
+  .foto {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .datos {
+    padding: var(--esp-5);
+  }
+}
+
+.secundario {
+  display: block;
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

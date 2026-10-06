@@ -1,0 +1,98 @@
+/* Unica serif de la pantalla (design-reference 6.1) */
+.titulo {
+  font-family: var(--fuente-marca);
+  font-size: var(--titulo-marca);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--texto);
+  text-wrap: balance;
+}
+
+.bajada {
+  margin-top: var(--esp-3);
+  color: var(--texto-secundario);
+  text-wrap: pretty;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-6);
+  margin-top: var(--esp-10);
+}
+
+/* Pestanas Empleado / Administrador (design-reference 8.5) */
+.pestanas {
+  display: flex;
+  margin-top: var(--esp-8);
+  border-bottom: 1px solid var(--borde-suave);
+}
+
+.pestanas + [role='tabpanel'] .formulario {
+  margin-top: var(--esp-8);
+}
+
+.pestana {
+  flex: 1;
+  min-height: 44px;
+  padding: var(--esp-2) var(--esp-4);
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--gris-600);
+  cursor: pointer;
+  transition:
+    color var(--dur-rapida) var(--curva-salida),
+    border-color var(--dur-rapida) var(--curva-salida);
+}
+
+.pestana:hover {
+  color: var(--texto);
+}
+
+.pestana[aria-selected='true'] {
+  border-bottom-color: var(--color-marca);
+  color: var(--color-marca);
+  font-weight: 600;
+}
+
+.pestana:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+}
+
+.enviar {
+  width: 100%;
+}
+
+.acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-3);
+  margin-top: var(--esp-2);
+}
+
+.nota {
+  margin-top: var(--esp-8);
+  font-size: var(--texto-sm);
+  line-height: 1.45;
+  color: var(--texto-terciario);
+  text-wrap: pretty;
+}
+
+@media (max-width: 639px) {
+  .titulo {
+    font-size: 2.5rem;
+  }
+}

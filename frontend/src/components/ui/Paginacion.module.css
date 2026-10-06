@@ -1,0 +1,80 @@
+.paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-4);
+  margin-top: var(--esp-4);
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.resumen {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.limite {
+  height: 32px;
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-bottom: 1.5px solid var(--gris-300);
+  border-radius: var(--radio-sm) var(--radio-sm) 0 0;
+  background: var(--gris-100);
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.limite:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.paginas {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagina {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 var(--esp-2);
+  border: 0;
+  border-radius: var(--radio-pildora);
+  background: transparent;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pagina:hover:not(:disabled):not(.actual) {
+  background: var(--gris-100);
+}
+
+.pagina:disabled {
+  color: var(--gris-400);
+  cursor: default;
+}
+
+.pagina:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.actual {
+  background: var(--color-marca);
+  color: var(--fondo);
+  font-weight: 600;
+}
+
+.hueco {
+  padding: 0 var(--esp-1);
+}

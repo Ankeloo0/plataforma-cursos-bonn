@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────
+# ENTORNO DE DESARROLLO
+# Uso (desde la raíz del proyecto):
+#   docker compose -f infra/dev/docker-compose.yml up -d
+# Las variables se leen de infra/dev/.env (automático).
+# Guía completa: infra/GUIA-DOCKER.md
+# ─────────────────────────────────────────────────────────────
+name: bonn-dev
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: bonn-dev-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: America/Mexico_City
+      PGTZ: America/Mexico_City
+    ports:
+      - "127.0.0.1:${DB_PORT_HOST:-5450}:5432"   # para conectarte con DBeaver/pgAdmin desde tu equipo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../../backend
+      target: development
+    container_name: bonn-dev-api
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      IGNORE_ENV_FILE: "true"
+      PORT: 3000
+    ports:
+      - "127.0.0.1:${API_PORT_HOST:-3200}:3000"
+    volumes:
+      - ../../backend:/app          # tu código: al guardar, Nest recompila y reinicia
+      - /app/node_modules           # node_modules propio del contenedor (Linux), no el de tu Mac
+      - storage:/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../frontend
+      target: development
+    container_name: bonn-dev-web
+    environment:
+      API_PROXY_TARGET: http://api:3000
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
+    ports:
+      - "127.0.0.1:${WEB_PORT_HOST:-5200}:5200"
+    volumes:
+      - ../../frontend:/app         # tu código: al guardar, Vite recarga el navegador
+      - /app/node_modules
+    depends_on:
+      - api
+
+volumes:
+  pgdata:     # datos de PostgreSQL (desarrollo)
+  storage:    # archivos subidos: videos, PDF, imágenes (desarrollo)

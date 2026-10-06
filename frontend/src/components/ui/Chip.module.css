@@ -1,0 +1,45 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  height: 24px;
+  padding: 0 var(--esp-2) 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radio-pildora);
+  font-size: var(--texto-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.neutro {
+  background: var(--gris-100);
+  color: var(--gris-600);
+}
+
+.info {
+  background: var(--color-info-fondo);
+  color: var(--color-info);
+}
+
+.exito {
+  background: var(--color-exito-fondo);
+  color: var(--color-exito);
+}
+
+.aviso {
+  background: var(--color-aviso-fondo);
+  color: var(--color-aviso);
+}
+
+.critico {
+  background: var(--color-critico-fondo);
+  color: var(--color-critico);
+}
+
+.marca {
+  background: var(--fondo);
+  border-color: var(--color-marca);
+  color: var(--color-marca);
+}

@@ -1,0 +1,50 @@
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-5);
+}
+
+.controles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.etiqueta {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  color: var(--texto-secundario);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+}
+
+.ayuda,
+.error {
+  font-size: var(--texto-sm);
+  line-height: 1.45;
+}
+
+.ayuda {
+  color: var(--texto-terciario);
+}
+
+.error {
+  color: var(--color-critico);
+}
+
+.sinNombre {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--gris-100);
+  color: var(--gris-500);
+}

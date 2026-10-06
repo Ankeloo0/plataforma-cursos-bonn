@@ -1,0 +1,232 @@
+.encabezado {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-8);
+}
+
+.identidad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.identidadDatos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  color: var(--texto-secundario);
+}
+
+.cargando {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-5);
+}
+
+/* Deja espacio para la barra fija de abajo */
+.contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-12);
+  padding-bottom: 112px;
+}
+
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+
+.seccionEncabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-4);
+}
+
+.ayuda {
+  max-width: var(--ancho-lectura);
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.plantillas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+.plantillasEtiqueta {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  color: var(--texto-secundario);
+}
+
+.grupos,
+.empresas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--esp-5);
+  align-items: start;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  padding: var(--esp-2) 0;
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+}
+
+/* La leyenda de un fieldset no participa del flex: se separa con float para que quede dentro de la tarjeta */
+.tarjetaTitulo {
+  float: left;
+  width: 100%;
+  padding: var(--esp-3) var(--esp-4) var(--esp-2);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+}
+
+.casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.casilla:hover {
+  background: var(--fondo-secundario);
+}
+
+.casilla input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--color-marca);
+  cursor: pointer;
+}
+
+.casilla input:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.casilla:has(input:checked) {
+  background: var(--color-marca-tinte);
+}
+
+.casillaTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.casillaNombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.casillaDescripcion {
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.casillaAlcance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: var(--texto-xs);
+  color: var(--texto-terciario);
+}
+
+.busqueda {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  width: min(320px, 100%);
+  height: 40px;
+  padding: 0 var(--esp-3);
+  border-bottom: 1.5px solid var(--gris-300);
+  border-radius: var(--radio-sm) var(--radio-sm) 0 0;
+  background: var(--gris-100);
+  color: var(--texto-terciario);
+}
+
+.busqueda:focus-within {
+  border-bottom-color: var(--color-marca);
+  background: var(--fondo);
+}
+
+.busqueda input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--texto-base);
+  color: var(--texto);
+  outline: none;
+}
+
+.barra {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--ancho-barra-lateral);
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3) var(--esp-6);
+  padding: var(--esp-4) var(--esp-8);
+  border-top: 1px solid var(--borde-suave);
+  background: var(--fondo);
+  box-shadow: 0 -4px 12px rgb(19 28 36 / 0.06);
+}
+
+.resumen {
+  font-weight: 500;
+}
+
+.pendiente {
+  color: var(--color-aviso);
+}
+
+.error {
+  flex-basis: 100%;
+  order: 3;
+  font-size: var(--texto-sm);
+  color: var(--color-critico);
+}
+
+.barraAcciones {
+  display: flex;
+  gap: var(--esp-3);
+}
+
+@media (max-width: 1023px) {
+  .barra {
+    left: 0;
+    padding: var(--esp-3) var(--esp-4);
+  }
+}
