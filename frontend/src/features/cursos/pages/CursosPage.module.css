@@ -1,0 +1,29 @@
+/* 3 columnas desde 1024 px, 2 entre 640 y 1023 px, 1 en celular (design-reference 8.3) */
+.cuadricula {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--esp-6);
+  margin: 0 0 var(--esp-6);
+  padding: 0;
+  list-style: none;
+}
+
+.cuadricula > li {
+  display: flex;
+}
+
+.cuadricula > li > * {
+  flex: 1;
+}
+
+@media (min-width: 640px) {
+  .cuadricula {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cuadricula {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

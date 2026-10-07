@@ -1,0 +1,84 @@
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+  padding: var(--esp-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--dur-media) var(--curva-salida);
+}
+
+.tarjeta:hover {
+  box-shadow: var(--sombra-2);
+}
+
+.cabecera {
+  position: relative;
+}
+
+/* Chips sobre la imagen, abajo, con fondo blanco */
+.chips {
+  position: absolute;
+  right: var(--esp-2);
+  bottom: var(--esp-2);
+  left: var(--esp-2);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+
+.chips > * {
+  background: var(--fondo);
+}
+
+.cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--esp-3);
+  padding: 0 var(--esp-1);
+}
+
+.titulo {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--texto-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-4);
+  font-size: var(--texto-sm);
+  color: var(--gris-600);
+}
+
+.dato {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  min-height: 40px;
+  padding: var(--esp-2) var(--esp-1) 0;
+  border-top: 1px solid var(--borde-suave);
+}
+
+.secundario {
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}

@@ -3,6 +3,7 @@ import { crearDataSourcePruebas, limpiarBase } from './e2e/base-de-datos.js';
 import {
   crearAdministrador,
   crearArea,
+  crearCurso,
   crearDosSucursales,
   crearEmpleado,
   crearEmpresa,
@@ -24,7 +25,7 @@ async function codigoDeError(consulta: Promise<unknown>): Promise<string | undef
 }
 
 // Las reglas criticas las protege la base aunque el codigo fallara (database-design 3.x, D-19, D-20)
-describe('Migraciones 1 a 4: restricciones de la base', () => {
+describe('Migraciones 1 a 5: restricciones de la base', () => {
   let ds: DataSource;
 
   beforeAll(async () => {
@@ -177,6 +178,108 @@ describe('Migraciones 1 a 4: restricciones de la base', () => {
     expect(segunda).toBe('23505');
   });
 
+  it('un curso nace con duración 0, exige calificación de 0 a 100 y fecha de publicación si no es borrador (database-design 4.2, D-36)', async () => {
+    const superusuario = await obtenerSuperusuario(ds);
+    const insertar = (duracion: number, calificacion: number, estado = 'BORRADOR', publicadoEn: Date | null = null) =>
+      ds.query(
+        `INSERT INTO cursos (titulo, duracion_horas, calificacion_minima, estado, publicado_en, creado_por)
+         VALUES ('Curso', $1, $2, $3, $4, $5)`,
+        [duracion, calificacion, estado, publicadoEn, superusuario.id],
+      );
+    expect(await codigoDeError(insertar(-1, 80))).toBe('23514');
+    expect(await codigoDeError(insertar(2, 101))).toBe('23514');
+    expect(await codigoDeError(insertar(2, 80, 'BORRADOR_X'))).toBe('23514');
+    expect(await codigoDeError(insertar(2, 80, 'PUBLICADO'))).toBe('23514');
+    await insertar(1.5, 80, 'PUBLICADO', new Date());
+
+    const [nuevo] = await ds.query(
+      `INSERT INTO cursos (titulo, calificacion_minima, creado_por) VALUES ('Sin videos', 80, $1) RETURNING duracion_horas`,
+      [superusuario.id],
+    );
+    expect(Number(nuevo.duracion_horas)).toBe(0);
+  });
+
+  it('dos temas de un curso no comparten número de orden, y se borran con su curso (database-design 4.3)', async () => {
+    const superusuario = await obtenerSuperusuario(ds);
+    const curso = await crearCurso(ds);
+    const insertarTema = (orden: number) =>
+      ds.query(`INSERT INTO temas (curso_id, titulo, orden, creado_por) VALUES ($1, 'Tema', $2, $3)`, [
+        curso.id,
+        orden,
+        superusuario.id,
+      ]);
+    await insertarTema(1);
+    expect(await codigoDeError(insertarTema(1))).toBe('23505');
+    expect(await codigoDeError(insertarTema(0))).toBe('23514');
+
+    await ds.query('DELETE FROM cursos WHERE id = $1', [curso.id]);
+    const [{ total }] = await ds.query('SELECT count(*)::int AS total FROM temas WHERE curso_id = $1', [curso.id]);
+    expect(total).toBe(0);
+  });
+
+  it('un material tiene exactamente una fuente: el enlace una URL, el artículo su texto y los demás un archivo (database-design 4.4, D-37)', async () => {
+    const superusuario = await obtenerSuperusuario(ds);
+    const curso = await crearCurso(ds);
+    const [tema] = await ds.query(`INSERT INTO temas (curso_id, titulo, orden, creado_por) VALUES ($1, 'Tema', 1, $2) RETURNING id`, [
+      curso.id,
+      superusuario.id,
+    ]);
+    const [archivo] = await ds.query(
+      `INSERT INTO archivos (storage_key, nombre_original, mime_type, tamano_bytes, creado_por)
+       VALUES ('materiales/2026/10/a.pdf', 'guia.pdf', 'application/pdf', 1024, $1) RETURNING id`,
+      [superusuario.id],
+    );
+    let orden = 0;
+    const insertar = (tipo: string, archivoId: string | null, url: string | null, contenido: string | null = null, segundos = 0) =>
+      ds.query(
+        `INSERT INTO materiales (tema_id, titulo, tipo, orden, archivo_id, url_externa, contenido, duracion_segundos, creado_por)
+         VALUES ($1, 'Material', $2, $3, $4, $5, $6, $7, $8)`,
+        [tema.id, tipo, ++orden, archivoId, url, contenido, segundos, superusuario.id],
+      );
+    expect(await codigoDeError(insertar('ENLACE', archivo.id, null))).toBe('23514');
+    expect(await codigoDeError(insertar('PDF', null, 'https://ejemplo.com'))).toBe('23514');
+    expect(await codigoDeError(insertar('PDF', archivo.id, 'https://ejemplo.com'))).toBe('23514');
+    expect(await codigoDeError(insertar('PDF', archivo.id, null, 'Texto'))).toBe('23514');
+    expect(await codigoDeError(insertar('ARTICULO', null, null))).toBe('23514');
+    expect(await codigoDeError(insertar('ARTICULO', archivo.id, null, 'Texto'))).toBe('23514');
+    expect(await codigoDeError(insertar('AUDIO', archivo.id, null))).toBe('23514');
+    expect(await codigoDeError(insertar('VIDEO', archivo.id, null, null, -1))).toBe('23514');
+    await insertar('PDF', archivo.id, null);
+    await insertar('ENLACE', null, 'https://ejemplo.com');
+    await insertar('ARTICULO', null, null, 'Cómo recibir al cliente en el taller.');
+    await insertar('VIDEO', archivo.id, null, null, 754);
+
+    // El archivo de un material no se puede borrar mientras el material exista
+    expect(await codigoDeError(ds.query('DELETE FROM archivos WHERE id = $1', [archivo.id]))).toBe('23503');
+  });
+
+  it('un archivo nace LISTO y solo acepta los estados de la compresión (D-35)', async () => {
+    const superusuario = await obtenerSuperusuario(ds);
+    const [archivo] = await ds.query(
+      `INSERT INTO archivos (storage_key, nombre_original, mime_type, tamano_bytes, creado_por)
+       VALUES ('materiales/2026/10/v.mp4', 'video.mp4', 'video/mp4', 1024, $1) RETURNING id, estado`,
+      [superusuario.id],
+    );
+    expect(archivo.estado).toBe('LISTO');
+    expect(await codigoDeError(ds.query(`UPDATE archivos SET estado = 'PROCESANDO' WHERE id = $1`, [archivo.id]))).toBeUndefined();
+    expect(await codigoDeError(ds.query(`UPDATE archivos SET estado = 'SUBIENDO' WHERE id = $1`, [archivo.id]))).toBe('23514');
+  });
+
+  it('deja al curso sin portada si se borra su archivo', async () => {
+    const superusuario = await obtenerSuperusuario(ds);
+    const curso = await crearCurso(ds);
+    const [archivo] = await ds.query(
+      `INSERT INTO archivos (storage_key, nombre_original, mime_type, tamano_bytes, creado_por)
+       VALUES ('portadas/2026/10/p.webp', 'portada.webp', 'image/webp', 1024, $1) RETURNING id`,
+      [superusuario.id],
+    );
+    await ds.query('UPDATE cursos SET imagen_archivo_id = $1 WHERE id = $2', [archivo.id, curso.id]);
+    await ds.query('DELETE FROM archivos WHERE id = $1', [archivo.id]);
+
+    const [fila] = await ds.query('SELECT imagen_archivo_id FROM cursos WHERE id = $1', [curso.id]);
+    expect(fila.imagen_archivo_id).toBeNull();
+  });
+
   it('rechaza un rol que no existe', async () => {
     const superusuario = await obtenerSuperusuario(ds);
     const codigo = await codigoDeError(
@@ -210,7 +313,8 @@ describe('Migraciones 1 a 4: restricciones de la base', () => {
 
   it('la migración 2 conserva los datos de la 1: prefijo provisional para las empresas y administradores sin empresa', async () => {
     const superusuario = await obtenerSuperusuario(ds);
-    // Revierte la 4, la 3 y la 2 para volver al esquema de la migracion 1
+    // Revierte la 5, la 4, la 3 y la 2 para volver al esquema de la migracion 1
+    await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
