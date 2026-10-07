@@ -6,6 +6,8 @@ import { PermisosGuard } from './common/guards/permisos.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AdministradoresModule } from './modules/administradores/administradores.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CatalogoModule } from './modules/catalogo/catalogo.module.js';
+import { EmpleadosModule } from './modules/empleados/empleados.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { MustChangePasswordGuard } from './modules/auth/guards/must-change-password.guard.js';
 import { EmpresasModule } from './modules/empresas/empresas.module.js';
@@ -41,6 +43,8 @@ import { MarcasModule } from './modules/marcas/marcas.module.js';
     EmpresasModule,
     MarcasModule,
     AdministradoresModule,
+    CatalogoModule,
+    EmpleadosModule,
   ],
   // Se ejecutan en este orden: sesion, contrasena temporal, rol y permiso (technical-spec 4.7)
   providers: [

@@ -2,8 +2,8 @@ import request from 'supertest';
 import { TODOS_LOS_PERMISOS } from '../src/common/constants/permisos.js';
 import { crearAppE2e, type AppE2e } from './e2e/app.js';
 import { limpiarBase } from './e2e/base-de-datos.js';
-import { crearAdministrador, crearEmpresa, crearSucursal, PASSWORD_PRUEBA } from './e2e/fabricas.js';
-import { cookieDe, iniciarSesion } from './e2e/sesion.js';
+import { crearAdministrador, crearEmpleado, crearEmpresa, crearSucursal, PASSWORD_PRUEBA } from './e2e/fabricas.js';
+import { cookieDe, iniciarSesion, iniciarSesionEmpleado } from './e2e/sesion.js';
 
 describe('Autenticación y sesión (HU-01, HU-02, HU-03)', () => {
   let e2e: AppE2e;
@@ -115,11 +115,68 @@ describe('Autenticación y sesión (HU-01, HU-02, HU-03)', () => {
       expect(JSON.stringify(respuesta.body)).toMatch(/Elige tu empresa/);
     });
 
-    // Pendientes hasta I2: el empleado inicia sesion por /auth/login-empleado, que necesita la tabla empleados (D-34)
-    it.todo('entra con empresa, número y contraseña; el mismo número en otra empresa es otra cuenta');
-    it.todo('no distingue mayúsculas en el número de empleado');
-    it.todo('responde lo mismo si el número no existe en la empresa o si la contraseña es incorrecta (RN-01.6)');
-    it.todo('no deja entrar a empleados de una empresa o sucursal inactiva (RN-00.3, RN-00.8)');
+    const login = (datos: { empresaId: string; numeroEmpleado: string; password?: string }) =>
+      http().post('/api/v1/auth/login-empleado').send({ password: PASSWORD_PRUEBA, ...datos });
+
+    it('entra con empresa, número y contraseña; el mismo número en otra empresa es otra cuenta', async () => {
+      const { sucursal } = await adminDeAgencia();
+      const otraEmpresa = await crearEmpresa(e2e.dataSource);
+      const otraSucursal = await crearSucursal(e2e.dataSource, { empresaId: otraEmpresa.id });
+      const ana = await crearEmpleado(e2e.dataSource, { sucursalId: sucursal.id, numeroEmpleado: '1024' });
+      const luis = await crearEmpleado(e2e.dataSource, { sucursalId: otraSucursal.id, numeroEmpleado: '1024' });
+
+      const respuesta = await login({ empresaId: ana.empresaId, numeroEmpleado: '1024' }).expect(200);
+      expect(String(respuesta.headers['set-cookie'])).toMatch(/bonn_sesion=.*HttpOnly/);
+      expect(respuesta.body).toMatchObject({ id: ana.id, rol: 'EMPLEADO', username: null, empleado: { numeroEmpleado: '1024' } });
+
+      const otra = await login({ empresaId: luis.empresaId, numeroEmpleado: '1024' }).expect(200);
+      expect(otra.body.id).toBe(luis.id);
+    });
+
+    it('no distingue mayúsculas en el número de empleado', async () => {
+      const { sucursal } = await adminDeAgencia();
+      const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursal.id, numeroEmpleado: 'VW-15' });
+      await login({ empresaId: empleado.empresaId, numeroEmpleado: 'vw-15' }).expect(200);
+    });
+
+    it('responde lo mismo si el número no existe en la empresa o si la contraseña es incorrecta, y bloquea tras 5 fallos (RN-01.6, RN-01.7)', async () => {
+      const { sucursal } = await adminDeAgencia();
+      const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursal.id, numeroEmpleado: '1024' });
+      const otraEmpresa = await crearEmpresa(e2e.dataSource);
+
+      const noExiste = await login({ empresaId: empleado.empresaId, numeroEmpleado: '9999' }).expect(401);
+      const otraEmpresaMismoNumero = await login({ empresaId: otraEmpresa.id, numeroEmpleado: '1024' }).expect(401);
+      const malaPassword = await login({ empresaId: empleado.empresaId, numeroEmpleado: '1024', password: 'Mala12345' }).expect(401);
+      expect(malaPassword.body).toEqual(noExiste.body);
+      expect(otraEmpresaMismoNumero.body).toEqual(noExiste.body);
+      expect(noExiste.body.message).toBe('Empresa, número de empleado o contraseña incorrectos.');
+
+      for (let i = 0; i < 4; i++) {
+        await login({ empresaId: empleado.empresaId, numeroEmpleado: '1024', password: 'Mala12345' }).expect(401);
+      }
+      const bloqueado = await login({ empresaId: empleado.empresaId, numeroEmpleado: '1024' }).expect(429);
+      expect(bloqueado.body.code).toBe('CUENTA_BLOQUEADA');
+    });
+
+    it('no deja entrar a empleados de una empresa o sucursal inactiva (RN-00.3, RN-00.8)', async () => {
+      const { empresa, sucursal } = await adminDeAgencia();
+      const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursal.id });
+
+      const credenciales = { empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado };
+
+      await e2e.dataSource.query('UPDATE empresas SET activo = false WHERE id = $1', [empresa.id]);
+      const respuesta = await login(credenciales).expect(401);
+      expect(respuesta.body.code).toBe('CREDENCIALES_INVALIDAS');
+
+      await e2e.dataSource.query('UPDATE empresas SET activo = true WHERE id = $1', [empresa.id]);
+      await e2e.dataSource.query('UPDATE sucursales SET activo = false WHERE id = $1', [sucursal.id]);
+      await login(credenciales).expect(401);
+    });
+
+    it('un empleado no entra por /auth/login ni un administrador por /auth/login-empleado', async () => {
+      const { empresa } = await adminDeAgencia({ username: 'jperez' });
+      await login({ empresaId: empresa.id, numeroEmpleado: 'jperez' }).expect(401);
+    });
   });
 
   describe('GET /auth/empresas (D-34)', () => {
@@ -153,8 +210,15 @@ describe('Autenticación y sesión (HU-01, HU-02, HU-03)', () => {
       expect(respuesta.body.code).toBe('SESION_REQUERIDA');
     });
 
-    // Pendientes hasta I2: el empleado inicia sesion por /auth/login-empleado, que necesita la tabla empleados (D-34)
-    it.todo('cierra la sesión abierta de un empleado si su empresa se desactiva');
+    it('cierra la sesión abierta de un empleado si su empresa se desactiva', async () => {
+      const { empresa, sucursal } = await adminDeAgencia();
+      const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursal.id });
+      const cookie = await iniciarSesionEmpleado(e2e.app, empleado);
+      await http().get('/api/v1/auth/me').set('Cookie', cookie).expect(200);
+
+      await e2e.dataSource.query('UPDATE empresas SET activo = false WHERE id = $1', [empresa.id]);
+      await http().get('/api/v1/auth/me').set('Cookie', cookie).expect(401);
+    });
 
     it('un rol sin permiso recibe 403', async () => {
       await adminDeAgencia({ username: 'jperez' });

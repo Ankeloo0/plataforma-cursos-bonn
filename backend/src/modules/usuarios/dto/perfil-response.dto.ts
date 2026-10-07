@@ -2,11 +2,18 @@ import type { Permiso } from '../../../common/constants/permisos.js';
 import { ReferenciaDto } from '../../../common/dto/referencia.dto.js';
 import { urlArchivo } from '../../archivos/archivos.service.js';
 import type { SucursalDeAlcance } from '../alcance.repository.js';
-import type { UsuarioConSucursal } from '../usuarios.repository.js';
+import type { DatosLaborales, UsuarioConSucursal } from '../usuarios.repository.js';
 
 export class SucursalResumenDto extends ReferenciaDto {
   empresa: ReferenciaDto;
   marca: ReferenciaDto;
+}
+
+export class DatosLaboralesDto {
+  numeroEmpleado: string;
+  fechaIngreso: string;
+  puesto: ReferenciaDto;
+  area: ReferenciaDto;
 }
 
 // Lo que necesita el frontend para la sesion (/auth/me) y para "Mi perfil"
@@ -25,13 +32,15 @@ export class PerfilResponseDto {
   permisos: Permiso[];
   // Administrador: las sucursales activas en las que opera
   sucursales: SucursalResumenDto[];
-  // Empleado: su sucursal
+  // Empleado: su sucursal y sus datos laborales
   sucursal: SucursalResumenDto | null;
+  empleado: DatosLaboralesDto | null;
 
   static desde(
     { usuario, sucursal }: UsuarioConSucursal,
     permisos: Permiso[],
     sucursales: SucursalDeAlcance[],
+    laborales: DatosLaborales | null = null,
   ): PerfilResponseDto {
     return {
       id: usuario.id,
@@ -46,6 +55,7 @@ export class PerfilResponseDto {
       permisos,
       sucursales: sucursales.filter((s) => s.activo && s.empresa.activo).map(resumen),
       sucursal: sucursal ? resumen(sucursal) : null,
+      empleado: laborales,
     };
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { TODOS_LOS_PERMISOS, type Permiso } from '../../common/constants/permisos.js';
 import { ROLES, type Rol } from '../../common/constants/roles.js';
 import type { Alcance } from '../../common/interfaces/usuario-sesion.interface.js';
@@ -42,6 +42,21 @@ export class AlcanceService {
       });
     }
     await this.alcanceRepository.reemplazarAcceso(usuarioId, [...new Set(permisos)], unicas, actorId);
+  }
+
+  // Sucursal de un empleado nuevo o trasladado (technical-spec 4.14, punto 6). Fuera del alcance responde 404,
+  // como si no existiera. Una sucursal o empresa inactiva solo puede llegar del superusuario: el alcance
+  // del administrador ya no la incluye.
+  async exigirSucursal(alcance: Alcance, sucursalId: string): Promise<{ id: string; empresaId: string }> {
+    const sucursal = alcanceIncluye(alcance, sucursalId) ? await this.alcanceRepository.sucursalParaEmpleado(sucursalId) : null;
+    if (!sucursal) throw new NotFoundException({ message: 'La sucursal no existe.', code: 'SUCURSAL_NO_ENCONTRADA' });
+    if (!sucursal.operable) {
+      throw new UnprocessableEntityException({
+        message: 'La sucursal o su empresa están desactivadas. Elige otra.',
+        code: 'SUCURSAL_INACTIVA',
+      });
+    }
+    return { id: sucursal.id, empresaId: sucursal.empresaId };
   }
 }
 

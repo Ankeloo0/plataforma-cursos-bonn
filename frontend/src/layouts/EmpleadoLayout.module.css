@@ -1,0 +1,117 @@
+.pagina {
+  min-height: 100dvh;
+  background: var(--fondo);
+}
+
+.saltar {
+  position: absolute;
+  top: var(--esp-2);
+  left: var(--esp-2);
+  z-index: 20;
+  padding: var(--esp-2) var(--esp-4);
+  border-radius: var(--radio-pildora);
+  background: var(--color-marca);
+  color: var(--fondo);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.saltar:focus-visible {
+  transform: none;
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+/* Barra superior de 72 px, blanca, como el sitio de referencia */
+.superior {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid var(--borde-suave);
+  background: var(--fondo);
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-8);
+  max-width: 1200px;
+  height: 72px;
+  margin: 0 auto;
+  padding: 0 var(--esp-8);
+}
+
+.logo {
+  display: flex;
+  border-radius: var(--radio-sm);
+}
+
+.logo:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 4px;
+}
+
+.menu {
+  display: flex;
+  gap: var(--esp-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Texto azul Bonn, peso 600; la opcion activa subrayada con 2 px */
+.opcion {
+  display: inline-flex;
+  align-items: center;
+  height: 72px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-marca);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color var(--dur-rapida) var(--curva-salida);
+}
+
+.opcion:hover {
+  border-bottom-color: var(--gris-300);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: -4px;
+}
+
+.activa,
+.activa:hover {
+  border-bottom-color: var(--color-marca);
+}
+
+.barra > :last-child {
+  margin-left: auto;
+}
+
+.contenido {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--esp-10) var(--esp-8) var(--esp-16);
+  outline: none;
+}
+
+@media (max-width: 639px) {
+  .barra {
+    gap: var(--esp-4);
+    padding: 0 var(--esp-4);
+  }
+
+  .menu {
+    gap: var(--esp-4);
+  }
+
+  .logo {
+    display: none;
+  }
+
+  .contenido {
+    padding: var(--esp-6) var(--esp-4) var(--esp-12);
+  }
+}

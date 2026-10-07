@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
+import type { EntityManager } from 'typeorm';
 import bcrypt from 'bcrypt';
 import { ROLES, type Rol } from '../../common/constants/roles.js';
 import { BCRYPT_COSTO } from '../../common/constants/seguridad.js';
@@ -32,7 +33,7 @@ export class UsuariosService {
     private readonly archivosService: ArchivosService,
   ) {}
 
-  async crear(datos: DatosNuevoUsuario, creadoPor: string): Promise<Usuario> {
+  async crear(datos: DatosNuevoUsuario, creadoPor: string, manager?: EntityManager): Promise<Usuario> {
     return this.usuariosRepository.crear({
       rol: datos.rol,
       sucursalId: datos.sucursalId ?? null,
@@ -43,7 +44,11 @@ export class UsuariosService {
       apellidoMaterno: datos.apellidoMaterno ?? null,
       debeCambiarPassword: true,
       creadoPor,
-    });
+    }, manager);
+  }
+
+  guardar(usuario: Usuario, manager?: EntityManager): Promise<Usuario> {
+    return this.usuariosRepository.guardar(usuario, manager);
   }
 
   buscarParaLogin(username: string): Promise<UsuarioConSucursal | null> {
@@ -71,7 +76,8 @@ export class UsuariosService {
     if (!encontrado) throw new NotFoundException(USUARIO_NO_ENCONTRADO);
     const { permisos } = await this.alcanceService.cargar(encontrado.usuario);
     const sucursales = encontrado.usuario.rol === ROLES.ADMIN ? await this.alcanceService.sucursalesDe(id) : [];
-    return PerfilResponseDto.desde(encontrado, permisos, sucursales);
+    const laborales = encontrado.usuario.rol === ROLES.EMPLEADO ? await this.usuariosRepository.datosLaboralesDe(id) : null;
+    return PerfilResponseDto.desde(encontrado, permisos, sucursales, laborales);
   }
 
   // RF-01.2 y RF-01.3. Cambiar la contrasena cierra las demas sesiones del usuario.

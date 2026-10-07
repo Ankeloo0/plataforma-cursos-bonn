@@ -5,10 +5,15 @@ import { CambiarPasswordPage } from '../features/auth/pages/CambiarPasswordPage'
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { EmpresaDetallePage } from '../features/empresas/pages/EmpresaDetallePage';
 import { EmpresasPage } from '../features/empresas/pages/EmpresasPage';
-import { InicioProvisionalPage } from '../features/inicio/pages/InicioProvisionalPage';
+import { CatalogoPage } from '../features/catalogo/pages/CatalogoPage';
+import { EmpleadoPage } from '../features/empleados/pages/EmpleadoPage';
+import { EmpleadosPage } from '../features/empleados/pages/EmpleadosPage';
+import { InicioEmpleadoPage } from '../features/inicio/pages/InicioEmpleadoPage';
 import { MarcasPage } from '../features/marcas/pages/MarcasPage';
 import { PerfilPage } from '../features/perfil/pages/PerfilPage';
+import { EmpleadoLayout } from '../layouts/EmpleadoLayout';
 import { PanelLayout } from '../layouts/PanelLayout';
+import { LayoutSegunRol } from './LayoutSegunRol';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicOnlyRoute } from './PublicOnlyRoute';
 import { RoleRoute } from './RoleRoute';
@@ -21,13 +26,13 @@ const rutas: RouteObject[] = [
     element: <ProtectedRoute />,
     children: [
       { path: '/cambiar-password', element: <CambiarPasswordPage /> },
+      { element: <LayoutSegunRol />, children: [{ path: '/perfil', element: <PerfilPage /> }] },
       {
         element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} />,
         children: [
           {
             element: <PanelLayout />,
             children: [
-              { path: '/perfil', element: <PerfilPage /> },
               {
                 element: <RoleRoute roles={['SUPERUSUARIO']} />,
                 children: [
@@ -42,6 +47,17 @@ const rutas: RouteObject[] = [
                 children: [{ path: '/marcas', element: <MarcasPage /> }],
               },
               {
+                element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} permisos={['CATALOGO_GESTIONAR']} />,
+                children: [{ path: '/catalogo', element: <CatalogoPage /> }],
+              },
+              {
+                element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} permisos={['EMPLEADOS_VER']} />,
+                children: [
+                  { path: '/empleados', element: <EmpleadosPage /> },
+                  { path: '/empleados/:id', element: <EmpleadoPage /> },
+                ],
+              },
+              {
                 element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} />,
                 // Sin dashboard todavia (I7): el superusuario empieza en empresas
                 children: [{ path: '/panel', element: <InicioPanel /> }],
@@ -50,10 +66,9 @@ const rutas: RouteObject[] = [
           },
         ],
       },
-      // El empleado tendra EmpleadoLayout en I2
       {
         element: <RoleRoute roles={['EMPLEADO']} />,
-        children: [{ path: '/', element: <InicioProvisionalPage /> }],
+        children: [{ element: <EmpleadoLayout />, children: [{ path: '/', element: <InicioEmpleadoPage /> }] }],
       },
     ],
   },

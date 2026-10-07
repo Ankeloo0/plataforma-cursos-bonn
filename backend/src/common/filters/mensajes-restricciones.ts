@@ -29,4 +29,18 @@ export const MENSAJES_RESTRICCIONES: Record<string, { code: string; message: str
     code: 'SUCURSAL_NOMBRE_DUPLICADO',
     message: 'Esta empresa ya tiene una sucursal con ese nombre.',
   },
+
+  // Migracion 4: areas, puestos y empleados
+  uq_areas_nombre_ci: {
+    code: 'AREA_NOMBRE_DUPLICADO',
+    message: 'Ya existe un área con ese nombre.',
+  },
+  uq_puestos_area_nombre_ci: {
+    code: 'PUESTO_NOMBRE_DUPLICADO',
+    message: 'Esta área ya tiene un puesto con ese nombre.',
+  },
+  uq_empleados_empresa_numero_ci: {
+    code: 'EMPLEADO_NUMERO_DUPLICADO',
+    message: 'Ese número de empleado ya existe en la empresa. Revisa el número.',
+  },
 };

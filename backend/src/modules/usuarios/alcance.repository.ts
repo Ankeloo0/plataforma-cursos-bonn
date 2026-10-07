@@ -68,6 +68,16 @@ export class AlcanceRepository {
     }));
   }
 
+  async sucursalParaEmpleado(id: string): Promise<{ id: string; empresaId: string; operable: boolean } | null> {
+    const [fila]: { id: string; empresa_id: string; operable: boolean }[] = await this.dataSource.query(
+      `SELECT s.id, s.empresa_id, (s.activo AND e.activo) AS operable
+         FROM sucursales s JOIN empresas e ON e.id = s.empresa_id
+        WHERE s.id = $1`,
+      [id],
+    );
+    return fila ? { id: fila.id, empresaId: fila.empresa_id, operable: fila.operable } : null;
+  }
+
   async idsDeSucursalesExistentes(ids: string[]): Promise<string[]> {
     if (ids.length === 0) return [];
     const filas: { id: string }[] = await this.dataSource.query(`SELECT id FROM sucursales WHERE id = ANY($1)`, [ids]);

@@ -8,10 +8,11 @@ import {
   crearEmpleado,
   crearEmpresa,
   crearMarca,
+  PASSWORD_PRUEBA,
   crearSucursal,
   obtenerSuperusuario,
 } from './e2e/fabricas.js';
-import { iniciarSesion } from './e2e/sesion.js';
+import { iniciarSesion, iniciarSesionEmpleado } from './e2e/sesion.js';
 
 describe('Empresas y sucursales (HU-04, HU-46)', () => {
   let e2e: AppE2e;
@@ -125,8 +126,19 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
       expect(sucursales.body).toEqual([]);
     });
 
-    // Pendiente hasta I2: el empleado inicia sesion por /auth/login-empleado, que necesita la tabla empleados (D-34)
-    it.todo('al desactivar la empresa, sus empleados no entran y se cierran sus sesiones (RN-00.3)');
+    it('al desactivar la empresa, sus empleados no entran y se cierran sus sesiones (RN-00.3)', async () => {
+      const { empresaA, sucursalA } = await crearDosSucursales(e2e.dataSource);
+      const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
+      const cookieEmpleado = await iniciarSesionEmpleado(e2e.app, empleado);
+
+      await http().post(`/api/v1/empresas/${empresaA.id}/desactivar`).set('Cookie', superCookie).expect(200);
+
+      await http().get('/api/v1/perfil').set('Cookie', cookieEmpleado).expect(401);
+      await http()
+        .post('/api/v1/auth/login-empleado')
+        .send({ empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado, password: PASSWORD_PRUEBA })
+        .expect(401);
+    });
 
     it('responde 404 para una empresa que no existe, 400 para un id inválido y rechaza campos como creadoPor', async () => {
       await http().get('/api/v1/empresas/00000000-0000-4000-8000-000000000000').set('Cookie', superCookie).expect(404);
@@ -204,8 +216,19 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
       expect(desactivada.body.activo).toBe(false);
     });
 
-    // Pendientes hasta I2: el empleado inicia sesion por /auth/login-empleado, que necesita la tabla empleados (D-34)
-    it.todo('al desactivar una sucursal, sus empleados no entran y se cierran sus sesiones (RN-00.8)');
+    it('al desactivar una sucursal, sus empleados no entran y se cierran sus sesiones (RN-00.8)', async () => {
+      const { sucursalA } = await crearDosSucursales(e2e.dataSource);
+      const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
+      const cookieEmpleado = await iniciarSesionEmpleado(e2e.app, empleado);
+
+      await http().post(`/api/v1/sucursales/${sucursalA.id}/desactivar`).set('Cookie', superCookie).expect(200);
+
+      await http().get('/api/v1/perfil').set('Cookie', cookieEmpleado).expect(401);
+      await http()
+        .post('/api/v1/auth/login-empleado')
+        .send({ empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado, password: PASSWORD_PRUEBA })
+        .expect(401);
+    });
 
     it('el selector de sucursales: el superusuario ve todas; cada administrador, solo las suyas', async () => {
       const { sucursalA, sucursalB, adminA } = await crearDosSucursales(e2e.dataSource);

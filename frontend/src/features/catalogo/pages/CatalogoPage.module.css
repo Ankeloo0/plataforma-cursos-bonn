@@ -1,0 +1,9 @@
+.explicacion {
+  max-width: var(--ancho-lectura);
+  margin: calc(-1 * var(--esp-5)) 0 var(--esp-6);
+  color: var(--texto-secundario);
+}
+
+.pestanas {
+  margin-bottom: var(--esp-6);
+}

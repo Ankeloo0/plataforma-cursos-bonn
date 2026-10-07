@@ -2,10 +2,12 @@ import { DataSource, QueryFailedError } from 'typeorm';
 import { crearDataSourcePruebas, limpiarBase } from './e2e/base-de-datos.js';
 import {
   crearAdministrador,
+  crearArea,
   crearDosSucursales,
   crearEmpleado,
   crearEmpresa,
   crearMarca,
+  crearPuesto,
   crearSucursal,
   obtenerSuperusuario,
 } from './e2e/fabricas.js';
@@ -22,7 +24,7 @@ async function codigoDeError(consulta: Promise<unknown>): Promise<string | undef
 }
 
 // Las reglas criticas las protege la base aunque el codigo fallara (database-design 3.x, D-19, D-20)
-describe('Migraciones 1 a 3: restricciones de la base', () => {
+describe('Migraciones 1 a 4: restricciones de la base', () => {
   let ds: DataSource;
 
   beforeAll(async () => {
@@ -140,6 +142,41 @@ describe('Migraciones 1 a 3: restricciones de la base', () => {
     expect(sucursalRepetida).toBe('23505');
   });
 
+  it('áreas únicas en la plataforma y puestos únicos dentro de su área, sin distinguir mayúsculas (D-25)', async () => {
+    const servicio = await crearArea(ds, { nombre: 'Servicio' });
+    const ventas = await crearArea(ds, { nombre: 'Ventas' });
+    expect(await codigoDeError(crearArea(ds, { nombre: 'SERVICIO' }))).toBe('23505');
+
+    await crearPuesto(ds, { areaId: servicio.id, nombre: 'Asesor' });
+    expect(await codigoDeError(crearPuesto(ds, { areaId: servicio.id, nombre: 'asesor' }))).toBe('23505');
+    await crearPuesto(ds, { areaId: ventas.id, nombre: 'Asesor' });
+
+    expect(await codigoDeError(ds.query('DELETE FROM areas WHERE id = $1', [servicio.id]))).toBe('23503');
+  });
+
+  it('el número de empleado es único por empresa sin distinguir mayúsculas; otra empresa puede repetirlo (D-34)', async () => {
+    const { sucursalA, sucursalB } = await crearDosSucursales(ds);
+    const otraDeA = await crearSucursal(ds, { empresaId: sucursalA.empresaId });
+
+    await crearEmpleado(ds, { sucursalId: sucursalA.id, numeroEmpleado: 'VW-10' });
+    expect(await codigoDeError(crearEmpleado(ds, { sucursalId: otraDeA.id, numeroEmpleado: 'vw-10' }))).toBe('23505');
+    await crearEmpleado(ds, { sucursalId: sucursalB.id, numeroEmpleado: 'VW-10' });
+  });
+
+  it('un usuario tiene a lo más una fila de empleado', async () => {
+    const { sucursalA } = await crearDosSucursales(ds);
+    const empleado = await crearEmpleado(ds, { sucursalId: sucursalA.id });
+    const superusuario = await obtenerSuperusuario(ds);
+    const segunda = await codigoDeError(
+      ds.query(
+        `INSERT INTO empleados (usuario_id, empresa_id, numero_empleado, puesto_id, fecha_ingreso, creado_por)
+         VALUES ($1, $2, 'OTRO', $3, '2026-01-01', $4)`,
+        [empleado.id, empleado.empresaId, empleado.puestoId, superusuario.id],
+      ),
+    );
+    expect(segunda).toBe('23505');
+  });
+
   it('rechaza un rol que no existe', async () => {
     const superusuario = await obtenerSuperusuario(ds);
     const codigo = await codigoDeError(
@@ -173,6 +210,8 @@ describe('Migraciones 1 a 3: restricciones de la base', () => {
 
   it('la migración 2 conserva los datos de la 1: prefijo provisional para las empresas y administradores sin empresa', async () => {
     const superusuario = await obtenerSuperusuario(ds);
+    // Revierte la 4, la 3 y la 2 para volver al esquema de la migracion 1
+    await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
     try {

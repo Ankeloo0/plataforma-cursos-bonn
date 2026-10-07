@@ -32,7 +32,7 @@ describe('PanelLayout', () => {
     abrir('/empresas');
 
     const opciones = menuLateral().getAllByRole('link').map((o) => o.textContent);
-    expect(opciones).toEqual(['Empresas', 'Marcas', 'Administradores', 'Mi perfil']);
+    expect(opciones).toEqual(['Empresas', 'Empleados', 'Áreas y puestos', 'Marcas', 'Administradores', 'Mi perfil']);
     expect(menuLateral().getByRole('link', { name: 'Empresas' })).toHaveAttribute('aria-current', 'page');
   });
 
@@ -49,6 +49,12 @@ describe('PanelLayout', () => {
     conSesion({ rol: 'ADMIN', permisos: ['MARCAS_GESTIONAR'] });
     abrir('/panel');
     expect(menuLateral().getAllByRole('link').map((o) => o.textContent)).toEqual(['Inicio', 'Marcas', 'Mi perfil']);
+  });
+
+  it('con "Ver empleados" y "Gestionar áreas y puestos" ve Empleados y Áreas y puestos', () => {
+    conSesion({ rol: 'ADMIN', permisos: ['EMPLEADOS_VER', 'CATALOGO_GESTIONAR'] });
+    abrir('/panel');
+    expect(menuLateral().getAllByRole('link').map((o) => o.textContent)).toEqual(['Inicio', 'Empleados', 'Áreas y puestos', 'Mi perfil']);
   });
 
   it('el menú de usuario se abre, se cierra con Escape y devuelve el foco al botón', () => {
