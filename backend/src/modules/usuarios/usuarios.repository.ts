@@ -19,6 +19,14 @@ export interface UsuarioConSucursal {
   sucursal: SucursalDeUsuario | null;
 }
 
+// Datos laborales del empleado para "Mi perfil" (RF-01.7)
+export interface DatosLaborales {
+  numeroEmpleado: string;
+  fechaIngreso: string;
+  puesto: { id: string; nombre: string };
+  area: { id: string; nombre: string };
+}
+
 export interface FiltrosAdministradores {
   search?: string;
   activo?: boolean;
@@ -89,8 +97,29 @@ export class UsuariosRepository {
     return { administradores, total };
   }
 
-  crear(datos: Partial<Usuario>): Promise<Usuario> {
-    return this.repo.save(this.repo.create(datos));
+  // Con manager, dentro de la transaccion del alta de un empleado
+  crear(datos: Partial<Usuario>, manager?: EntityManager): Promise<Usuario> {
+    const m = manager ?? this.repo.manager;
+    return m.save(m.create(Usuario, datos));
+  }
+
+  async datosLaboralesDe(usuarioId: string): Promise<DatosLaborales | null> {
+    const [fila]: Record<string, string>[] = await this.repo.query(
+      `SELECT em.numero_empleado, to_char(em.fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
+              p.id AS puesto_id, p.nombre AS puesto_nombre, a.id AS area_id, a.nombre AS area_nombre
+         FROM empleados em
+         JOIN puestos p ON p.id = em.puesto_id
+         JOIN areas a ON a.id = p.area_id
+        WHERE em.usuario_id = $1`,
+      [usuarioId],
+    );
+    if (!fila) return null;
+    return {
+      numeroEmpleado: fila.numero_empleado,
+      fechaIngreso: fila.fecha_ingreso,
+      puesto: { id: fila.puesto_id, nombre: fila.puesto_nombre },
+      area: { id: fila.area_id, nombre: fila.area_nombre },
+    };
   }
 
   guardar(usuario: Usuario, manager?: EntityManager): Promise<Usuario> {

@@ -22,47 +22,17 @@
   margin-top: var(--esp-10);
 }
 
-/* Pestanas Empleado / Administrador (design-reference 8.5) */
-.pestanas {
-  display: flex;
-  margin-top: var(--esp-8);
-  border-bottom: 1px solid var(--borde-suave);
-}
-
-.pestanas + [role='tabpanel'] .formulario {
+.pestanasAcceso {
   margin-top: var(--esp-8);
 }
 
-.pestana {
+/* En el acceso las dos pestanas ocupan el mismo ancho */
+.pestanasAcceso > button {
   flex: 1;
-  min-height: 44px;
-  padding: var(--esp-2) var(--esp-4);
-  margin-bottom: -1px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  font: inherit;
-  font-weight: 500;
-  color: var(--gris-600);
-  cursor: pointer;
-  transition:
-    color var(--dur-rapida) var(--curva-salida),
-    border-color var(--dur-rapida) var(--curva-salida);
 }
 
-.pestana:hover {
-  color: var(--texto);
-}
-
-.pestana[aria-selected='true'] {
-  border-bottom-color: var(--color-marca);
-  color: var(--color-marca);
-  font-weight: 600;
-}
-
-.pestana:focus-visible {
-  outline: 2px solid var(--color-marca);
-  outline-offset: 2px;
+[role='tabpanel'] > .formulario {
+  margin-top: var(--esp-8);
 }
 
 .grupo {

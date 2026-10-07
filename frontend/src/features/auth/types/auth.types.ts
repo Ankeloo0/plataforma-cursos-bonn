@@ -28,6 +28,14 @@ export interface EmpresaLogin {
   nombre: string;
 }
 
+// Datos laborales del empleado (RF-01.7)
+export interface DatosLaborales {
+  numeroEmpleado: string;
+  fechaIngreso: string;
+  puesto: { id: string; nombre: string };
+  area: { id: string; nombre: string };
+}
+
 // Respuesta de /auth/me y /perfil
 export interface Perfil {
   id: string;
@@ -44,6 +52,7 @@ export interface Perfil {
   permisos: Permiso[];
   // Administrador: las sucursales activas en las que opera
   sucursales: SucursalResumen[];
-  // Empleado: su sucursal
+  // Empleado: su sucursal y sus datos laborales
   sucursal: SucursalResumen | null;
+  empleado: DatosLaborales | null;
 }

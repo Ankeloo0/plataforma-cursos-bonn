@@ -142,3 +142,21 @@ tr:hover .accionTexto {
 .sinDato {
   color: var(--texto-terciario);
 }
+
+/* Select usado como filtro junto a la busqueda: la etiqueta queda solo para lectores de pantalla */
+.filtroLista {
+  width: min(240px, 100%);
+}
+
+.filtroLista > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.filtroLista > div:last-child {
+  display: none;
+}

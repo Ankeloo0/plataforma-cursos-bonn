@@ -1,4 +1,4 @@
-import { Building2, House, ShieldCheck, Tag, UserRound, type LucideIcon } from 'lucide-react';
+import { Building2, House, Layers, ShieldCheck, Tag, UserRound, Users, type LucideIcon } from 'lucide-react';
 import type { Perfil, Permiso, Rol } from '../features/auth/types/auth.types';
 import { puede } from '../utils/permisos';
 
@@ -15,6 +15,8 @@ export interface OpcionMenu {
 const OPCIONES: OpcionMenu[] = [
   { etiqueta: 'Inicio', ruta: '/panel', icono: House, roles: ['ADMIN'] },
   { etiqueta: 'Empresas', ruta: '/empresas', icono: Building2, roles: ['SUPERUSUARIO'] },
+  { etiqueta: 'Empleados', ruta: '/empleados', icono: Users, roles: ['SUPERUSUARIO', 'ADMIN'], permisos: ['EMPLEADOS_VER'] },
+  { etiqueta: 'Áreas y puestos', ruta: '/catalogo', icono: Layers, roles: ['SUPERUSUARIO', 'ADMIN'], permisos: ['CATALOGO_GESTIONAR'] },
   { etiqueta: 'Marcas', ruta: '/marcas', icono: Tag, roles: ['SUPERUSUARIO', 'ADMIN'], permisos: ['MARCAS_GESTIONAR'] },
   { etiqueta: 'Administradores', ruta: '/administradores', icono: ShieldCheck, roles: ['SUPERUSUARIO'] },
   { etiqueta: 'Mi perfil', ruta: '/perfil', icono: UserRound, roles: ['SUPERUSUARIO', 'ADMIN'] },

@@ -133,12 +133,51 @@ export async function darAcceso(ds: DataSource, adminId: string, permisos: Permi
   }
 }
 
-// El empleado no tiene usuario (D-34)
-export function crearEmpleado(
+export async function crearArea(ds: DataSource, datos: { nombre?: string; activo?: boolean } = {}): Promise<Registro> {
+  const superusuario = await obtenerSuperusuario(ds);
+  const [area] = await ds.query(
+    `INSERT INTO areas (nombre, activo, creado_por) VALUES ($1, $2, $3) RETURNING id, nombre`,
+    [datos.nombre ?? `Area ${sufijo()}`, datos.activo ?? true, superusuario.id],
+  );
+  return area;
+}
+
+export async function crearPuesto(
   ds: DataSource,
-  datos: { sucursalId: string; debeCambiarPassword?: boolean },
-): Promise<UsuarioCreado> {
-  return insertarUsuario(ds, { ...datos, rol: ROLES.EMPLEADO });
+  datos: { areaId?: string; nombre?: string; activo?: boolean } = {},
+): Promise<Registro & { areaId: string }> {
+  const superusuario = await obtenerSuperusuario(ds);
+  const areaId = datos.areaId ?? (await crearArea(ds)).id;
+  const [puesto] = await ds.query(
+    `INSERT INTO puestos (area_id, nombre, activo, creado_por) VALUES ($1, $2, $3, $4)
+     RETURNING id, nombre, area_id AS "areaId"`,
+    [areaId, datos.nombre ?? `Puesto ${sufijo()}`, datos.activo ?? true, superusuario.id],
+  );
+  return puesto;
+}
+
+export interface EmpleadoCreado extends UsuarioCreado {
+  empleadoId: string;
+  empresaId: string;
+  numeroEmpleado: string;
+  puestoId: string;
+}
+
+// El empleado no tiene usuario: entra con su empresa y su numero (D-34)
+export async function crearEmpleado(
+  ds: DataSource,
+  datos: { sucursalId: string; numeroEmpleado?: string; puestoId?: string; debeCambiarPassword?: boolean },
+): Promise<EmpleadoCreado> {
+  const usuario = await insertarUsuario(ds, { ...datos, rol: ROLES.EMPLEADO });
+  const superusuario = await obtenerSuperusuario(ds);
+  const puestoId = datos.puestoId ?? (await crearPuesto(ds)).id;
+  const [empleado] = await ds.query(
+    `INSERT INTO empleados (usuario_id, empresa_id, numero_empleado, puesto_id, fecha_ingreso, creado_por)
+     SELECT $1, s.empresa_id, $2, $3, '2026-01-15', $4 FROM sucursales s WHERE s.id = $5
+     RETURNING id, empresa_id AS "empresaId", numero_empleado AS "numeroEmpleado"`,
+    [usuario.id, datos.numeroEmpleado ?? sufijo().slice(0, 6).toUpperCase(), puestoId, superusuario.id, datos.sucursalId],
+  );
+  return { ...usuario, empleadoId: empleado.id, empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado, puestoId };
 }
 
 // Escenario base de alcance (technical-spec 7): dos empresas con una sucursal cada una y un

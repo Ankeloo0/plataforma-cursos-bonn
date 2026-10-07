@@ -10,7 +10,7 @@ import { mostrarToast } from '../../../components/ui/toast.store';
 import { NOMBRE_ROL } from '../../../config/menu.config';
 import { useConsulta } from '../../../hooks/useConsulta';
 import type { ApiError } from '../../../services/api/client';
-import { fechaHora } from '../../../utils/formato';
+import { fechaDia, fechaHora } from '../../../utils/formato';
 import { useAuthStore } from '../../auth/stores/auth.store';
 import type { Perfil } from '../../auth/types/auth.types';
 import { perfilService } from '../services/perfil.service';
@@ -172,10 +172,31 @@ export function PerfilPage() {
                   <dd>{datos.username}</dd>
                 </div>
               )}
+              {datos.empleado && (
+                <div>
+                  <dt>Número de empleado</dt>
+                  <dd className="cifras-tabulares">{datos.empleado.numeroEmpleado}</dd>
+                </div>
+              )}
               <div>
                 <dt>Rol</dt>
                 <dd>{NOMBRE_ROL[datos.rol]}</dd>
               </div>
+              {datos.empleado && (
+                <>
+                  <div>
+                    <dt>Puesto</dt>
+                    <dd>
+                      {datos.empleado.puesto.nombre}
+                      <span className={styles.secundario}>{datos.empleado.area.nombre}</span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Fecha de ingreso</dt>
+                    <dd className="cifras-tabulares">{fechaDia(datos.empleado.fechaIngreso)}</dd>
+                  </div>
+                </>
+              )}
               {datos.rol === 'SUPERUSUARIO' && (
                 <div>
                   <dt>Alcance</dt>

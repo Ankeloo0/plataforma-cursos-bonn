@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { Pestanas } from '../../../components/ui/Pestanas';
 import { AuthLayout } from '../../../layouts/AuthLayout';
 import { rutaInicio } from '../../../utils/rutas';
 import { FormularioLoginAdministrador } from '../components/FormularioLoginAdministrador';
@@ -32,24 +33,16 @@ export function LoginPage() {
       <h1 className={styles.titulo}>Te damos la bienvenida</h1>
       <p className={styles.bajada}>{actual.bajada}</p>
 
-      <div role="tablist" aria-label="Tipo de acceso" className={styles.pestanas}>
-        {PESTANAS.map((p) => (
-          <button
-            key={p.acceso}
-            type="button"
-            role="tab"
-            id={`pestana-${p.acceso}`}
-            aria-selected={p.acceso === acceso}
-            aria-controls="panel-acceso"
-            className={styles.pestana}
-            onClick={() => setAcceso(p.acceso)}
-          >
-            {p.texto}
-          </button>
-        ))}
-      </div>
+      <Pestanas
+        etiqueta="Tipo de acceso"
+        opciones={PESTANAS.map((p) => ({ valor: p.acceso, etiqueta: p.texto }))}
+        valor={acceso}
+        alCambiar={setAcceso}
+        idPanel="panel-acceso"
+        className={styles.pestanasAcceso}
+      />
 
-      <div role="tabpanel" id="panel-acceso" aria-labelledby={`pestana-${acceso}`}>
+      <div role="tabpanel" id="panel-acceso" aria-labelledby={`panel-acceso-${acceso}`}>
         {acceso === 'empleado' ? (
           <FormularioLoginEmpleado alEntrar={alEntrar} />
         ) : (

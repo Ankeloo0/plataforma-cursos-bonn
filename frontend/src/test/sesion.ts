@@ -17,6 +17,7 @@ export function perfil(datos: Partial<Perfil> = {}): Perfil {
       { id: 's1', nombre: 'Sucursal Centro', empresa: { id: 'e1', nombre: 'Grupo Centro' }, marca: { id: 'm1', nombre: 'Volkswagen' } },
     ],
     sucursal: null,
+    empleado: null,
     ...datos,
   };
 }
