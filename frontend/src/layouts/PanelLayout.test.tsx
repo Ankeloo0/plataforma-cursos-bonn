@@ -32,7 +32,7 @@ describe('PanelLayout', () => {
     abrir('/empresas');
 
     const opciones = menuLateral().getAllByRole('link').map((o) => o.textContent);
-    expect(opciones).toEqual(['Empresas', 'Empleados', 'Áreas y puestos', 'Marcas', 'Administradores', 'Mi perfil']);
+    expect(opciones).toEqual(['Empresas', 'Empleados', 'Áreas y puestos', 'Marcas', 'Cursos', 'Administradores', 'Mi perfil']);
     expect(menuLateral().getByRole('link', { name: 'Empresas' })).toHaveAttribute('aria-current', 'page');
   });
 

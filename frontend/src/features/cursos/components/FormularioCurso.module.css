@@ -1,0 +1,42 @@
+.casilla {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.casilla:hover {
+  background: var(--fondo-secundario);
+}
+
+.casilla:has(input:checked) {
+  background: var(--color-marca-tinte);
+}
+
+.casilla input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--color-marca);
+  cursor: pointer;
+}
+
+.casilla input:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.casillaNombre {
+  display: block;
+  font-weight: 600;
+}
+
+.casillaDescripcion {
+  display: block;
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}

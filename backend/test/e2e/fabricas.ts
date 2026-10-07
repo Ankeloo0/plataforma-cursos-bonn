@@ -156,6 +156,21 @@ export async function crearPuesto(
   return puesto;
 }
 
+// Curso en borrador; por defecto lo crea el superusuario
+export async function crearCurso(
+  ds: DataSource,
+  datos: { titulo?: string; creadoPor?: string; estado?: 'BORRADOR' | 'PUBLICADO' | 'ARCHIVADO' } = {},
+): Promise<{ id: string; titulo: string }> {
+  const creadoPor = datos.creadoPor ?? (await obtenerSuperusuario(ds)).id;
+  const estado = datos.estado ?? 'BORRADOR';
+  const [curso] = await ds.query(
+    `INSERT INTO cursos (titulo, calificacion_minima, estado, publicado_en, creado_por)
+     VALUES ($1, 80, $2, $3, $4) RETURNING id, titulo`,
+    [datos.titulo ?? `Curso ${sufijo()}`, estado, estado === 'BORRADOR' ? null : new Date(), creadoPor],
+  );
+  return curso;
+}
+
 export interface EmpleadoCreado extends UsuarioCreado {
   empleadoId: string;
   empresaId: string;
