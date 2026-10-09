@@ -1,0 +1,147 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-2);
+}
+
+.etiqueta {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  color: var(--texto-secundario);
+}
+
+.ayuda {
+  font-size: var(--texto-sm);
+  line-height: 1.45;
+  color: var(--texto-terciario);
+}
+
+/* Zona para soltar: borde punteado que se vuelve azul cuando el archivo esta encima */
+.zona {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-6) var(--esp-4);
+  border: 1.5px dashed var(--borde);
+  border-radius: var(--radio-md);
+  background: var(--fondo-secundario);
+  text-align: center;
+  transition:
+    border-color var(--dur-rapida) var(--curva-salida),
+    background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.encima {
+  border-color: var(--color-marca);
+  background: var(--color-marca-tinte);
+}
+
+.iconoZona {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-marca-tinte);
+  color: var(--color-marca);
+}
+
+.encima .iconoZona {
+  background: var(--fondo);
+}
+
+.textoZona {
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+/* Archivo elegido: subiendo, subido, actual o con error */
+.archivo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+}
+
+.conError {
+  border-color: var(--color-critico-fondo);
+  background: var(--color-critico-fondo);
+}
+
+.iconoArchivo,
+.iconoListo,
+.iconoError {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.iconoArchivo {
+  color: var(--texto-secundario);
+}
+
+.iconoListo {
+  color: var(--color-exito);
+}
+
+.iconoError {
+  color: var(--color-critico);
+}
+
+.datos {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--esp-1);
+  min-width: 0;
+}
+
+.nombre {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.secundario {
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.mensajeError {
+  font-size: var(--texto-sm);
+  color: var(--color-critico);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  margin-top: var(--esp-2);
+}
+
+.avance {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  margin: var(--esp-1) 0;
+}
+
+.barra {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radio-pildora);
+  background: var(--gris-200);
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-marca);
+  transition: width var(--dur-media) linear;
+}

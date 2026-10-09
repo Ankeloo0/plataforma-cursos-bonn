@@ -1,6 +1,6 @@
 import { BookOpen, Plus, RotateCw, SearchX } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Alerta } from '../../../components/ui/Alerta';
 import { Button } from '../../../components/ui/Button';
 import { CampoBusqueda } from '../../../components/ui/CampoBusqueda';
@@ -12,13 +12,13 @@ import { PanelLateral } from '../../../components/ui/PanelLateral';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import { mostrarToast } from '../../../components/ui/toast.store';
 import { useConsulta } from '../../../hooks/useConsulta';
-import type { ApiError } from '../../../services/api/client';
 import { puede } from '../../../utils/permisos';
 import { useAuthStore } from '../../auth/stores/auth.store';
 import { FormularioCurso, type CambiosCurso } from '../components/FormularioCurso';
 import { TarjetaCurso } from '../components/TarjetaCurso';
 import { cursosService } from '../services/cursos.service';
-import type { Curso, FiltrosCursos } from '../types/cursos.types';
+import type { FiltrosCursos } from '../types/cursos.types';
+import { guardarPortada } from '../utils/curso';
 import styles from './CursosPage.module.css';
 
 const OPCIONES_ESTADO: { valor: FiltrosCursos['estado']; etiqueta: string }[] = [
@@ -40,26 +40,14 @@ function leerFiltros(params: URLSearchParams): FiltrosCursos {
   };
 }
 
-// La portada se sube despues de guardar los datos: si falla, los datos ya quedaron guardados
-async function guardarPortada(cursoId: string, portada: File | null | undefined): Promise<void> {
-  if (portada === undefined) return;
-  try {
-    if (portada) await cursosService.cambiarPortada(cursoId, portada);
-    else await cursosService.quitarPortada(cursoId);
-  } catch (error) {
-    mostrarToast(`Los datos se guardaron, pero la portada no: ${(error as ApiError).message}`, 'critico');
-  }
-}
-
-type Accion = { tipo: 'nuevo' } | { tipo: 'editar'; curso: Curso } | null;
-
 // Catalogo de cursos del administrador (RF-04.1, RF-04.9). Los filtros viven en la URL.
 export function CursosPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const [params, setParams] = useSearchParams();
   const filtros = useMemo(() => leerFiltros(params), [params]);
   const hayFiltros = filtros.search !== '' || filtros.estado !== 'todos';
-  const [accion, setAccion] = useState<Accion>(null);
+  const navegar = useNavigate();
+  const [nuevo, setNuevo] = useState(false);
 
   const consulta = useConsulta(useCallback(() => cursosService.listar(filtros), [filtros]));
   const gestionar = puede(usuario, 'CURSOS_GESTIONAR');
@@ -78,25 +66,17 @@ export function CursosPage() {
   );
   const buscar = useCallback((search: string) => cambiarFiltros({ search }), [cambiarFiltros]);
 
+  // Como en Udemy, al crear el curso se pasa a su editor para agregarle temas y materiales
   async function crear({ datos, portada }: CambiosCurso) {
     const creado = await cursosService.crear(datos);
     await guardarPortada(creado.id, portada);
-    setAccion(null);
-    consulta.recargar();
     mostrarToast('Curso creado en borrador');
-  }
-
-  async function editar(curso: Curso, { datos, portada }: CambiosCurso) {
-    await cursosService.actualizar(curso.id, datos, curso.actualizadoEn);
-    await guardarPortada(curso.id, portada);
-    setAccion(null);
-    consulta.recargar();
-    mostrarToast('Curso actualizado');
+    navegar(`/cursos/${creado.id}/editar`);
   }
 
   const resultado = consulta.datos;
   const botonNuevo = gestionar && (
-    <Button icono={Plus} onClick={() => setAccion({ tipo: 'nuevo' })}>
+    <Button icono={Plus} onClick={() => setNuevo(true)}>
       Nuevo curso
     </Button>
   );
@@ -159,7 +139,7 @@ export function CursosPage() {
           <ul className={styles.cuadricula} aria-label="Cursos">
             {resultado.data.map((curso) => (
               <li key={curso.id}>
-                <TarjetaCurso curso={curso} alEditar={() => setAccion({ tipo: 'editar', curso })} />
+                <TarjetaCurso curso={curso} />
               </li>
             ))}
           </ul>
@@ -173,23 +153,12 @@ export function CursosPage() {
       )}
 
       <PanelLateral
-        abierto={accion?.tipo === 'nuevo'}
+        abierto={nuevo}
         titulo="Nuevo curso"
-        descripcion="Nace en borrador. Los temas, los materiales y a quién va dirigido se agregan después."
-        alCerrar={() => setAccion(null)}
+        descripcion="Nace en borrador. Al crearlo pasas a su editor para agregar temas y materiales."
+        alCerrar={() => setNuevo(false)}
       >
-        {accion?.tipo === 'nuevo' && <FormularioCurso alGuardar={crear} alCancelar={() => setAccion(null)} />}
-      </PanelLateral>
-
-      <PanelLateral abierto={accion?.tipo === 'editar'} titulo="Editar curso" alCerrar={() => setAccion(null)}>
-        {accion?.tipo === 'editar' && (
-          <FormularioCurso
-            key={accion.curso.id}
-            curso={accion.curso}
-            alGuardar={(cambios) => editar(accion.curso, cambios)}
-            alCancelar={() => setAccion(null)}
-          />
-        )}
+        {nuevo && <FormularioCurso alGuardar={crear} alCancelar={() => setNuevo(false)} />}
       </PanelLateral>
     </>
   );

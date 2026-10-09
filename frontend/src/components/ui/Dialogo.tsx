@@ -9,6 +9,8 @@ export interface DialogoProps {
   children: ReactNode;
   // El boton dice la accion exacta ("Desactivar empresa"), nunca "Aceptar"
   textoConfirmar: string;
+  // Cuando "Cancelar" se confundiria con la accion ("Cancelar subida"): "Seguir subiendo"
+  textoCancelar?: string;
   textoCargando?: string;
   peligro?: boolean;
   cargando?: boolean;
@@ -23,6 +25,7 @@ export function Dialogo({
   titulo,
   children,
   textoConfirmar,
+  textoCancelar = 'Cancelar',
   textoCargando,
   peligro = false,
   cargando = false,
@@ -60,7 +63,7 @@ export function Dialogo({
           {error && <Alerta>{error}</Alerta>}
           <div className={styles.acciones}>
             <Button variante="secundario" onClick={alCancelar} autoFocus>
-              Cancelar
+              {textoCancelar}
             </Button>
             <Button
               variante={peligro ? 'peligro' : 'primario'}

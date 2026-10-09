@@ -7,6 +7,7 @@ import { EmpresaDetallePage } from '../features/empresas/pages/EmpresaDetallePag
 import { EmpresasPage } from '../features/empresas/pages/EmpresasPage';
 import { CatalogoPage } from '../features/catalogo/pages/CatalogoPage';
 import { CursosPage } from '../features/cursos/pages/CursosPage';
+import { EditorCursoPage } from '../features/cursos/pages/EditorCursoPage';
 import { EmpleadoPage } from '../features/empleados/pages/EmpleadoPage';
 import { EmpleadosPage } from '../features/empleados/pages/EmpleadosPage';
 import { InicioEmpleadoPage } from '../features/inicio/pages/InicioEmpleadoPage';
@@ -53,7 +54,10 @@ const rutas: RouteObject[] = [
               },
               {
                 element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} permisos={['CURSOS_GESTIONAR', 'CURSOS_PUBLICAR', 'CURSOS_ASIGNAR']} />,
-                children: [{ path: '/cursos', element: <CursosPage /> }],
+                children: [
+                  { path: '/cursos', element: <CursosPage /> },
+                  { path: '/cursos/:id/editar', element: <EditorCursoPage /> },
+                ],
               },
               {
                 element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} permisos={['EMPLEADOS_VER']} />,

@@ -1,5 +1,5 @@
-import { CalendarClock, CircleDot, Clock, Pencil } from 'lucide-react';
-import { Button } from '../../../components/ui/Button';
+import { CalendarClock, CircleDot, Clock, ListTree } from 'lucide-react';
+import { Link } from 'react-router';
 import { Chip } from '../../../components/ui/Chip';
 import { fechaDia } from '../../../utils/formato';
 import type { Curso } from '../types/cursos.types';
@@ -8,8 +8,8 @@ import { PortadaCurso } from './PortadaCurso';
 import styles from './TarjetaCurso.module.css';
 
 // Tarjeta del catalogo del administrador (design-reference 8.3): portada, obligatorio y fecha limite,
-// titulo, duracion y estado, y la accion Editar si puede editarlo.
-export function TarjetaCurso({ curso, alEditar }: { curso: Curso; alEditar: () => void }) {
+// titulo, duracion y estado. Abre el editor de contenido, o su consulta si no lo puede editar.
+export function TarjetaCurso({ curso }: { curso: Curso }) {
   const estado = ESTADO_CURSO[curso.estado];
 
   return (
@@ -36,7 +36,7 @@ export function TarjetaCurso({ curso, alEditar }: { curso: Curso; alEditar: () =
         <div className={styles.datos}>
           <span className={styles.dato}>
             <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
-            {curso.duracionHoras > 0 ? <span className="cifras-tabulares">{duracion(curso.duracionHoras)}</span> : 'Sin videos'}
+            {curso.duracionHoras > 0 ? <span className="cifras-tabulares">{duracion(curso.duracionHoras)}</span> : 'Sin duración'}
           </span>
           <Chip tono={estado.tono} icono={estado.icono}>
             {estado.etiqueta}
@@ -45,13 +45,14 @@ export function TarjetaCurso({ curso, alEditar }: { curso: Curso; alEditar: () =
       </div>
       <div className={styles.pie}>
         <span className={`${styles.secundario} cifras-tabulares`}>Aprueba con {curso.calificacionMinima}</span>
-        {curso.puedeEditar ? (
-          <Button variante="texto" icono={Pencil} onClick={alEditar} aria-label={`Editar ${curso.titulo}`}>
-            Editar
-          </Button>
-        ) : (
-          <span className={styles.secundario}>Solo consulta</span>
-        )}
+        <Link
+          to={`/cursos/${curso.id}/editar`}
+          className={styles.enlace}
+          aria-label={`${curso.puedeEditar ? 'Editar contenido de' : 'Ver contenido de'} ${curso.titulo}`}
+        >
+          <ListTree size={20} strokeWidth={1.75} aria-hidden="true" />
+          {curso.puedeEditar ? 'Editar contenido' : 'Ver contenido'}
+        </Link>
       </div>
     </article>
   );

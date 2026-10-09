@@ -35,7 +35,7 @@ export interface CambiosCurso {
   portada: File | null | undefined;
 }
 
-// Crear y editar los datos generales de un curso (RF-04.1). Temas y materiales llegan en I3.2.
+// Crear y editar los datos generales de un curso (RF-04.1). Temas y materiales van en su editor.
 // La duracion no se captura: la calcula el sistema con la duracion de sus videos (D-36).
 export function FormularioCurso({
   curso,

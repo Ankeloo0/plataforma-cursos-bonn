@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository, SelectQueryBuilder } from 'typeorm';
+import type { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
 import { patronBusqueda } from '../../common/utils/busqueda.js';
 import type { QueryCursosDto } from './dto/curso.dto.js';
@@ -61,6 +61,23 @@ export class CursosRepository {
 
   guardar(curso: Curso): Promise<Curso> {
     return this.repo.save(curso);
+  }
+
+  // D-36: suma de los materiales activos de los temas activos, en horas. Se llama en la misma transaccion
+  // que cambia el contenido, y marca el curso como modificado por quien hizo el cambio.
+  async recalcularDuracion(cursoId: string, actorId: string, manager: EntityManager): Promise<void> {
+    await manager.query(
+      `UPDATE cursos SET
+         duracion_horas = coalesce((
+           SELECT sum(m.duracion_segundos) FROM materiales m
+           JOIN temas t ON t.id = m.tema_id
+           WHERE t.curso_id = $1 AND t.activo AND m.activo
+         ), 0) / 3600.0,
+         actualizado_por = $2,
+         actualizado_en = now()
+       WHERE id = $1`,
+      [cursoId, actorId],
+    );
   }
 
   private conAuditoria(consulta: SelectQueryBuilder<Curso>): SelectQueryBuilder<Curso> {

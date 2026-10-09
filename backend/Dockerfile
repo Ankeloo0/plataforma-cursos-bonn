@@ -7,7 +7,8 @@
 
 FROM node:24-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache tzdata
+# ffmpeg trae ffprobe, que mide la duración de los videos (I3.2) y después los comprimirá (I3.4)
+RUN apk add --no-cache tzdata ffmpeg
 ENV TZ=America/Mexico_City
 
 # ── Desarrollo ───────────────────────────────────────────────

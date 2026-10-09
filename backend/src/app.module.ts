@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PermisosGuard } from './common/guards/permisos.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -39,6 +40,8 @@ import { MarcasModule } from './modules/marcas/marcas.module.js';
         synchronize: false,
       }),
     }),
+    // Tareas programadas dentro de la API (T-12): por ahora, la limpieza de archivos sin usar
+    ScheduleModule.forRoot(),
     HealthModule,
     AuthModule,
     EmpresasModule,
