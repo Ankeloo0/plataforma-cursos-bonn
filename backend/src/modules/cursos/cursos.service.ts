@@ -96,10 +96,16 @@ export class CursosService {
     return this.obtener(id, actor);
   }
 
-  // 404 si no lo puede ver; 403 si lo ve pero no lo puede editar (V-10)
-  private async buscarEditable(id: string, actor: UsuarioSesion): Promise<Curso> {
+  // Tambien la usan temas y materiales: el contenido se ve con el curso (V-12)
+  async buscarVisible(id: string, actor: UsuarioSesion): Promise<Curso> {
     const curso = await this.cursosRepository.buscarPorId(id);
     if (!curso || !this.acceso.puedeVer(curso, actor)) throw new NotFoundException(CURSO_NO_ENCONTRADO);
+    return curso;
+  }
+
+  // 404 si no lo puede ver; 403 si lo ve pero no lo puede editar (V-10)
+  async buscarEditable(id: string, actor: UsuarioSesion): Promise<Curso> {
+    const curso = await this.buscarVisible(id, actor);
     if (!this.acceso.puedeEditar(curso, actor)) {
       throw new ForbiddenException({ message: 'No puedes editar este curso.', code: 'CURSO_NO_EDITABLE' });
     }

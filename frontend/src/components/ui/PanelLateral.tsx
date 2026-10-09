@@ -29,6 +29,11 @@ export function PanelLateral({ abierto, titulo, descripcion, alCerrar, children 
       className={styles.panel}
       aria-labelledby={idTitulo}
       onClose={alCerrar}
+      // Escape tambien pasa por alCerrar: asi la pantalla puede pedir confirmar antes de cerrar
+      onCancel={(evento) => {
+        evento.preventDefault();
+        alCerrar();
+      }}
       onClick={(evento) => {
         if (evento.target === dialogo.current) alCerrar();
       }}

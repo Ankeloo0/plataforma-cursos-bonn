@@ -15,6 +15,11 @@ export const cursosService = {
     return data;
   },
 
+  async obtener(id: string): Promise<Curso> {
+    const { data } = await apiClient.get<Curso>(`/cursos/${id}`);
+    return data;
+  },
+
   async crear(datos: DatosCurso): Promise<Curso> {
     const { data } = await apiClient.post<Curso>('/cursos', datos);
     return data;

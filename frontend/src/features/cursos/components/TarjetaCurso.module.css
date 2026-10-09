@@ -82,3 +82,29 @@
   font-size: var(--texto-sm);
   color: var(--texto-secundario);
 }
+
+/* Accion de texto (DESIGN.md: boton de texto) que lleva al editor de contenido */
+.enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  padding: var(--esp-1);
+  border-radius: var(--radio-sm);
+  font-weight: 600;
+  color: var(--color-marca);
+  text-decoration: none;
+}
+
+.enlace:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.enlace:active {
+  color: var(--color-marca-hover);
+}
+
+.enlace:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}

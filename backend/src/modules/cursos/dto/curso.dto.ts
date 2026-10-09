@@ -30,7 +30,7 @@ export class QueryCursosDto extends PaginationQueryDto {
   estado?: EstadoCurso;
 }
 
-// RF-04.1. El estado no se envia: el curso nace en borrador y cambia con publicar y archivar (I3.4).
+// RF-04.1. El estado no se envia: el curso nace en borrador y cambia con publicar y archivar (I3.5).
 // La duracion tampoco: la calcula el sistema con la duracion de sus videos (D-36).
 export class CrearCursoDto {
   @Recortar()

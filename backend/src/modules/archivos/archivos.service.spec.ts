@@ -1,4 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
+import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import sharp from 'sharp';
 import type { AlmacenamientoService } from './almacenamiento.service.js';
 import type { ArchivosRepository } from './archivos.repository.js';
@@ -140,5 +143,22 @@ describe('ArchivosService.entregar (T-06)', () => {
     const { servicio, res } = crearCon('development');
     await servicio.entregar('a1', sesion, res as never);
     expect(res.sendFile).toHaveBeenCalledWith('/storage/fotos/2026/10/x.webp');
+  });
+});
+
+describe('ArchivosService.guardarMaterial (P-10)', () => {
+  it('aplica el limite de su tipo real: un PDF de mas de 50 MB se rechaza y se borra el temporal', async () => {
+    const { servicio, repo } = crear();
+    const carpeta = await mkdtemp(path.join(tmpdir(), 'bonn-material-'));
+    const temporal = path.join(carpeta, 'subida');
+    await writeFile(temporal, '%PDF-1.4\n1 0 obj\n<<>>\nendobj\n');
+    const pdfGrande = { path: temporal, size: 60 * 1024 * 1024, originalname: 'manual.pdf' } as Express.Multer.File;
+
+    await expect(servicio.guardarMaterial(pdfGrande, 'u1')).rejects.toMatchObject({
+      response: { code: 'ARCHIVO_DEMASIADO_GRANDE' },
+    });
+    expect(repo.crear).not.toHaveBeenCalled();
+    await expect(access(temporal)).rejects.toThrow();
+    await rm(carpeta, { recursive: true, force: true });
   });
 });

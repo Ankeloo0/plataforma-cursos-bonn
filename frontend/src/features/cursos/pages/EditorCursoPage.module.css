@@ -1,0 +1,61 @@
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-4);
+  margin-bottom: var(--esp-8);
+}
+
+.identidad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  min-width: 0;
+  max-width: 880px;
+}
+
+.identidad h1 {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-5);
+}
+
+.dato {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.cargando {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-8);
+}
+
+.cargandoPlan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+}
+
+/* El plan de estudios se lee mejor en una columna de ancho moderado, como el temario de Udemy */
+.encabezado,
+.cargando,
+.cargandoPlan,
+.plan {
+  max-width: 960px;
+}
+
+.agregarTema {
+  margin-top: var(--esp-6);
+}

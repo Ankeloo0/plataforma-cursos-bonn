@@ -1,0 +1,164 @@
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Tema: contenedor de 12 px con borde, plano (DESIGN.md: lo que se lee en su lugar no lleva sombra) */
+.tema {
+  position: relative;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+}
+
+/* Lo que se esta moviendo flota sobre lo demas */
+.arrastrando {
+  z-index: 2;
+  box-shadow: var(--sombra-2);
+}
+
+.cabeceraTema {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 64px;
+  padding: var(--esp-3) var(--esp-3) var(--esp-3) var(--esp-4);
+  border-bottom: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md) var(--radio-md) 0 0;
+  background: var(--fondo-secundario);
+}
+
+.datosTema {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.numero {
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.tituloTema {
+  font-size: var(--texto-lg);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Oculto: se lee mas tenue, y el chip "Oculto" lo dice con texto */
+.oculto {
+  opacity: 0.6;
+}
+
+/* Lista de materiales dentro del tema: filas separadas por una linea, sin hueco entre ellas */
+.tema .lista {
+  gap: 0;
+}
+
+.material {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: 60px;
+  padding: var(--esp-2) var(--esp-3) var(--esp-2) var(--esp-4);
+  border-bottom: 1px solid var(--borde-suave);
+  background: var(--fondo);
+}
+
+.material.arrastrando {
+  border-radius: var(--radio-sm);
+}
+
+.iconoTipo {
+  flex-shrink: 0;
+  color: var(--texto-secundario);
+}
+
+.datosMaterial {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tituloMaterial {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.detalle {
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-2);
+}
+
+.chips:empty {
+  display: none;
+}
+
+.sinMateriales {
+  padding: var(--esp-4);
+  border-bottom: 1px solid var(--borde-suave);
+  font-size: var(--texto-sm);
+  color: var(--texto-terciario);
+}
+
+.pieTema {
+  padding: var(--esp-2) var(--esp-4);
+}
+
+/* Asa para arrastrar: boton de solo icono, con cursor de mano y anillo de foco para el teclado */
+.asa {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 40px;
+  margin-left: calc(-1 * var(--esp-2));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--texto-terciario);
+  cursor: grab;
+  touch-action: none;
+}
+
+.asa:hover {
+  background: var(--gris-100);
+  color: var(--gris-800);
+}
+
+.asa:active {
+  cursor: grabbing;
+}
+
+.asa:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+@media (max-width: 639px) {
+  .cabeceraTema,
+  .material {
+    padding-left: var(--esp-3);
+  }
+
+  .asa {
+    width: 40px;
+    height: 44px;
+  }
+}

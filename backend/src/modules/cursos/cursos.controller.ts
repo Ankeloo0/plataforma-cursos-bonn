@@ -26,7 +26,7 @@ import { CursosService } from './cursos.service.js';
 import { ActualizarCursoDto, CrearCursoDto, QueryCursosDto } from './dto/curso.dto.js';
 import type { CursoResponseDto } from './dto/curso-response.dto.js';
 
-// Publicar, archivar, reactivar y eliminar un borrador llegan en I3.4; temas y materiales, en I3.2
+// Publicar, archivar, reactivar y eliminar un borrador llegan en I3.5; temas y materiales estan en sus controladores
 @ApiTags('Cursos')
 @Roles(ROLES.SUPERUSUARIO, ROLES.ADMIN)
 @Controller('cursos')
