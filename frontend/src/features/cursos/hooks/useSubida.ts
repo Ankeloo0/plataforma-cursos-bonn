@@ -10,9 +10,6 @@ export type EstadoSubida =
   | { fase: 'listo'; archivo: File; subido: ArchivoSubido }
   | { fase: 'error'; archivo: File; mensaje: string };
 
-// Subida de un material como en Udemy (RF-04.5): empieza al elegir el archivo, muestra su avance y se
-// puede cancelar. Un archivo subido que no se llega a guardar se borra al cancelar o al cerrar el
-// formulario; si la pagina se cierra de golpe, la limpieza diaria de la API lo borra.
 export function useSubida(tipo: TipoMaterial) {
   const [estado, setEstado] = useState<EstadoSubida>({ fase: 'vacio' });
   const peticion = useRef<AbortController | null>(null);

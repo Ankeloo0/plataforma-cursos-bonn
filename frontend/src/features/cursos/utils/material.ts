@@ -25,7 +25,7 @@ export const ARTICULO_MAXIMO_CARACTERES = 100_000;
 
 // Mismos tipos y limites que valida la API (P-10); aqui solo evitan subir un archivo que se rechazara
 export const ARCHIVO_POR_TIPO: Record<TipoArchivo, { accept: string; maximo: number; ayuda: string }> = {
-  VIDEO: { accept: 'video/mp4', maximo: 500 * MB, ayuda: 'MP4 de hasta 500 MB.' },
+  VIDEO: { accept: 'video/mp4', maximo: 500 * MB, ayuda: 'MP4 de hasta 500 MB. Al guardarlo se comprime a 720p.' },
   PDF: { accept: 'application/pdf', maximo: 50 * MB, ayuda: 'PDF de hasta 50 MB.' },
   IMAGEN: {
     accept: 'image/jpeg,image/png,image/webp',

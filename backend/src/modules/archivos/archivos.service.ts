@@ -82,8 +82,6 @@ export class ArchivosService {
     return this.guardarWebp(contenido, 'portadas', imagen.originalname, usuarioId);
   }
 
-  // Primer paso de un material (technical-spec 4.8): Multer ya escribio el archivo en tmp/.
-  // El temporal se borra siempre al final: si se guardo, ya se movio a su lugar.
   async guardarMaterial(archivo: Express.Multer.File | undefined, usuarioId: string): Promise<ArchivoSubidoDto> {
     if (!archivo) {
       throw new UnprocessableEntityException({ message: 'Selecciona un archivo.', code: 'ARCHIVO_REQUERIDO' });
@@ -142,7 +140,7 @@ export class ArchivosService {
     return { archivo, tipo };
   }
 
-  // Tarea diaria (technical-spec 4.9): archivos de materiales que nadie uso y temporales abandonados
+  //archivos de materiales que nadie uso y temporales abandonados
   @Cron('0 3 * * *', { name: 'limpiar-archivos-sin-usar' })
   async limpiarSinUsar(): Promise<void> {
     const antesDe = new Date(Date.now() - HORAS_ARCHIVO_SIN_USAR * 60 * 60 * 1000);
@@ -158,7 +156,7 @@ export class ArchivosService {
     const archivo = await this.archivosRepository.buscarPorId(archivoId);
     if (!archivo) return;
     await this.archivosRepository.eliminar(archivo.id);
-    // Si borrar el archivo fisico falla, la fila ya no existe: solo queda un archivo huerfano en disco
+    //si falla borrar el fisico, la fila ya no existe: solo queda un huerfano en disco
     await this.almacenamiento.eliminar(archivo.storageKey).catch((error: unknown) => {
       this.logger.warn(`No se pudo borrar ${archivo.storageKey}: ${String(error)}`);
     });
@@ -167,7 +165,7 @@ export class ArchivosService {
   async entregar(archivoId: string, sesion: UsuarioSesion, res: Response): Promise<void> {
     const archivo = await this.archivosRepository.buscarPorId(archivoId);
     if (!archivo || !(await this.puedeVer(archivo.id, sesion))) {
-      // 404 y no 403, para no revelar que el archivo existe (technical-spec 4.14)
+      //404 y no 403, para no revelar que el archivo existe
       throw new NotFoundException({ message: 'El archivo no existe.', code: 'ARCHIVO_NO_ENCONTRADO' });
     }
 
