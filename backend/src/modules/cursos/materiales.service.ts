@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import type { UsuarioSesion } from '../../common/interfaces/usuario-sesion.interface.js';
 import { ArchivosService } from '../archivos/archivos.service.js';
 import { MediosService } from '../archivos/medios.service.js';
+import { duracionDelArticuloSegundos, limpiarArticulo, palabrasDelArticulo } from './articulo.js';
 import { CursosRepository } from './cursos.repository.js';
 import type { ActualizarMaterialDto, CrearMaterialDto } from './dto/contenido.dto.js';
 import { MaterialResponseDto } from './dto/contenido-response.dto.js';
@@ -19,6 +20,9 @@ interface DatosDeArchivo {
   textoExtraido: string | null;
 }
 
+// Una sola fuente por material (ck_materiales_fuente); las otras dos quedan en null
+type DatosDeFuente = Pick<Material, 'archivoId' | 'urlExterna' | 'contenido' | 'duracionSegundos' | 'textoExtraido'>;
+
 // Materiales de un tema (RF-04.4). El archivo ya se subio con POST /archivos (technical-spec 4.8).
 @Injectable()
 export class MaterialesService {
@@ -33,10 +37,15 @@ export class MaterialesService {
 
   async crear(temaId: string, datos: CrearMaterialDto, actor: UsuarioSesion): Promise<MaterialResponseDto> {
     const tema = await this.temasService.buscarEditable(temaId, actor);
-    const fuente =
-      datos.tipo === TIPOS_MATERIAL.ENLACE
-        ? { archivoId: null, urlExterna: datos.urlExterna!, duracionSegundos: 0, textoExtraido: null }
-        : { ...(await this.leerArchivo(datos.archivoId!, datos.tipo, actor)), urlExterna: null };
+    const sinFuente = { archivoId: null, urlExterna: null, contenido: null, duracionSegundos: 0, textoExtraido: null };
+    let fuente: DatosDeFuente;
+    if (datos.tipo === TIPOS_MATERIAL.ENLACE) {
+      fuente = { ...sinFuente, urlExterna: datos.urlExterna! };
+    } else if (datos.tipo === TIPOS_MATERIAL.ARTICULO) {
+      fuente = { ...sinFuente, ...this.leerArticulo(datos.contenido!) };
+    } else {
+      fuente = { ...sinFuente, ...(await this.leerArchivo(datos.archivoId!, datos.tipo, actor)) };
+    }
 
     const material = await this.dataSource.transaction(async (manager) => {
       const nuevo = await this.materialesRepository.crear(
@@ -52,17 +61,12 @@ export class MaterialesService {
   // V-13. Un archivo nuevo reemplaza al anterior, que se borra despues del commit.
   async actualizar(id: string, datos: ActualizarMaterialDto, actor: UsuarioSesion): Promise<MaterialResponseDto> {
     const { material, tema } = await this.buscarEditable(id, actor);
-    const esEnlace = material.tipo === TIPOS_MATERIAL.ENLACE;
-    if ((esEnlace && datos.archivoId) || (!esEnlace && datos.urlExterna)) {
-      throw new UnprocessableEntityException({
-        message: esEnlace ? 'Un enlace no lleva archivo.' : 'Este material lleva un archivo, no un enlace.',
-        code: 'MATERIAL_FUENTE_INVALIDA',
-      });
-    }
+    this.exigirFuenteDelTipo(material.tipo, datos);
     const reemplazo =
       datos.archivoId && datos.archivoId !== material.archivoId
         ? await this.leerArchivo(datos.archivoId, material.tipo, actor)
         : undefined;
+    const articulo = datos.contenido !== undefined ? this.leerArticulo(datos.contenido) : undefined;
 
     await this.dataSource.transaction(async (manager) => {
       const actualizado = await this.materialesRepository.actualizarSiNoCambio(
@@ -73,6 +77,7 @@ export class MaterialesService {
           ...(datos.descripcion !== undefined && { descripcion: datos.descripcion }),
           ...(datos.urlExterna !== undefined && { urlExterna: datos.urlExterna }),
           ...reemplazo,
+          ...articulo,
           actualizadoPor: actor.id,
         },
         manager,
@@ -130,6 +135,29 @@ export class MaterialesService {
       duracionSegundos: tipo === TIPOS_MATERIAL.VIDEO ? await this.mediosService.duracionVideoSegundos(archivo.storageKey) : 0,
       textoExtraido: tipo === TIPOS_MATERIAL.PDF ? await this.mediosService.textoPdf(archivo.storageKey) : null,
     };
+  }
+
+  // D-37: se guarda el HTML limpio y la duracion sale de sus palabras. Sin texto no hay articulo.
+  private leerArticulo(html: string): { contenido: string; duracionSegundos: number } {
+    const contenido = limpiarArticulo(html);
+    const palabras = palabrasDelArticulo(contenido);
+    if (palabras === 0) {
+      throw new UnprocessableEntityException({ message: 'Escribe el contenido del artículo.', code: 'ARTICULO_VACIO' });
+    }
+    return { contenido, duracionSegundos: duracionDelArticuloSegundos(palabras) };
+  }
+
+  // Al editar, cada tipo solo acepta su propia fuente: archivo, enlace o texto del articulo
+  private exigirFuenteDelTipo(tipo: TipoMaterial, datos: ActualizarMaterialDto): void {
+    let mensaje: string | null = null;
+    if (tipo === TIPOS_MATERIAL.ENLACE && (datos.archivoId || datos.contenido !== undefined)) {
+      mensaje = 'Un enlace solo lleva su dirección.';
+    } else if (tipo === TIPOS_MATERIAL.ARTICULO && (datos.archivoId || datos.urlExterna)) {
+      mensaje = 'Un artículo solo lleva su texto.';
+    } else if (tipo !== TIPOS_MATERIAL.ENLACE && tipo !== TIPOS_MATERIAL.ARTICULO && (datos.urlExterna || datos.contenido !== undefined)) {
+      mensaje = 'Este material lleva un archivo.';
+    }
+    if (mensaje) throw new UnprocessableEntityException({ message: mensaje, code: 'MATERIAL_FUENTE_INVALIDA' });
   }
 
   private async buscarEditable(id: string, actor: UsuarioSesion): Promise<{ material: Material; tema: Tema }> {

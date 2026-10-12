@@ -17,8 +17,8 @@
 }
 
 .generica {
-  font-family: var(--fuente-marca);
-  font-size: clamp(var(--texto-xl), 6cqi, var(--texto-3xl));
-  font-weight: 600;
-  color: var(--color-marca);
+  width: 55%;
+  height: auto;
+  /* El PNG trae fondo blanco opaco; multiply lo funde con el tinte azul */
+  mix-blend-mode: multiply;
 }

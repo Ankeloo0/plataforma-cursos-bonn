@@ -1,9 +1,6 @@
+/* El PNG trae fondo blanco opaco; multiply lo funde con fondos claros como --fondo-secundario */
 .logo {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--fuente-marca);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  color: var(--color-marca);
+  display: block;
+  width: auto;
+  mix-blend-mode: multiply;
 }

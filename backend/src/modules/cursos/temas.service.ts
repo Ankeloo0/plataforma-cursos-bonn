@@ -108,7 +108,6 @@ export class TemasService {
     });
   }
 
-  // Tambien la usa MaterialesService: un tema se edita si su curso se puede editar
   async buscarEditable(id: string, actor: UsuarioSesion): Promise<Tema> {
     const tema = await this.temasRepository.buscarPorId(id);
     if (!tema) throw new NotFoundException({ message: 'El tema no existe.', code: 'TEMA_NO_ENCONTRADO' });

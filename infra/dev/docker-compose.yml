@@ -1,10 +1,3 @@
-# ─────────────────────────────────────────────────────────────
-# ENTORNO DE DESARROLLO
-# Uso (desde la raíz del proyecto):
-#   docker compose -f infra/dev/docker-compose.yml up -d
-# Las variables se leen de infra/dev/.env (automático).
-# Guía completa: infra/GUIA-DOCKER.md
-# ─────────────────────────────────────────────────────────────
 name: bonn-dev
 
 services:
@@ -18,7 +11,7 @@ services:
       TZ: America/Mexico_City
       PGTZ: America/Mexico_City
     ports:
-      - "127.0.0.1:${DB_PORT_HOST:-5450}:5432"   # para conectarte con DBeaver/pgAdmin desde tu equipo
+      - "127.0.0.1:${DB_PORT_HOST:-5450}:5432" 
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -40,8 +33,8 @@ services:
     ports:
       - "127.0.0.1:${API_PORT_HOST:-3200}:3000"
     volumes:
-      - ../../backend:/app          # tu código: al guardar, Nest recompila y reinicia
-      - /app/node_modules           # node_modules propio del contenedor (Linux), no el de tu Mac
+      - ../../backend:/app        
+      - /app/node_modules      
       - storage:/storage
     depends_on:
       db:
@@ -58,11 +51,11 @@ services:
     ports:
       - "127.0.0.1:${WEB_PORT_HOST:-5200}:5200"
     volumes:
-      - ../../frontend:/app         # tu código: al guardar, Vite recarga el navegador
+      - ../../frontend:/app     
       - /app/node_modules
     depends_on:
       - api
 
 volumes:
-  pgdata:     # datos de PostgreSQL (desarrollo)
-  storage:    # archivos subidos: videos, PDF, imágenes (desarrollo)
+  pgdata:     
+  storage:   

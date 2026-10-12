@@ -15,6 +15,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Recortar, RecortarONulo } from '../../../common/utils/transformaciones.js';
+import { ARTICULO_MAXIMO_CARACTERES } from '../articulo.js';
 import { TIPOS_MATERIAL, type TipoMaterial } from '../entities/material.entity.js';
 
 // RF-04.3
@@ -48,21 +49,16 @@ export class OrdenDto {
   ids: string[];
 }
 
-// Los articulos se habilitan en I3.3 (D-37): mientras tanto la API rechaza ese tipo
-export const TIPOS_MATERIAL_HABILITADOS: TipoMaterial[] = [
-  TIPOS_MATERIAL.VIDEO,
-  TIPOS_MATERIAL.PDF,
-  TIPOS_MATERIAL.IMAGEN,
-  TIPOS_MATERIAL.DOCUMENTO,
-  TIPOS_MATERIAL.ENLACE,
-];
-
 const URL_EXTERNA = { protocols: ['http', 'https'], require_protocol: true };
 const MENSAJE_URL = 'Escribe una dirección completa que empiece con http:// o https://.';
+const MENSAJE_ARTICULO_LARGO = 'El artículo no puede pasar de 100 000 caracteres.';
 
-// RF-04.4. El archivo se sube antes con POST /archivos (technical-spec 4.8); el enlace va en urlExterna.
+const conArchivo = (tipo: TipoMaterial) => tipo !== TIPOS_MATERIAL.ENLACE && tipo !== TIPOS_MATERIAL.ARTICULO;
+
+// RF-04.4. El archivo se sube antes con POST /archivos (technical-spec 4.8); el enlace va en urlExterna
+// y el HTML del articulo en contenido (D-37).
 export class CrearMaterialDto {
-  @IsIn(TIPOS_MATERIAL_HABILITADOS, { message: 'El tipo de material no es válido.' })
+  @IsIn(Object.values(TIPOS_MATERIAL), { message: 'El tipo de material no es válido.' })
   tipo: TipoMaterial;
 
   @Recortar()
@@ -77,7 +73,7 @@ export class CrearMaterialDto {
   @MaxLength(5000, { message: 'La descripción no puede pasar de 5000 caracteres.' })
   descripcion?: string | null;
 
-  @ValidateIf((dto: CrearMaterialDto) => dto.tipo !== TIPOS_MATERIAL.ENLACE)
+  @ValidateIf((dto: CrearMaterialDto) => conArchivo(dto.tipo))
   @IsUUID('all', { message: 'Sube un archivo para este material.' })
   archivoId?: string;
 
@@ -86,9 +82,16 @@ export class CrearMaterialDto {
   @IsUrl(URL_EXTERNA, { message: MENSAJE_URL })
   @MaxLength(500, { message: 'La dirección no puede pasar de 500 caracteres.' })
   urlExterna?: string;
+
+  // Que tenga texto se revisa despues de limpiarlo (MaterialesService)
+  @ValidateIf((dto: CrearMaterialDto) => dto.tipo === TIPOS_MATERIAL.ARTICULO)
+  @IsString({ message: 'Escribe el contenido del artículo.' })
+  @MaxLength(ARTICULO_MAXIMO_CARACTERES, { message: MENSAJE_ARTICULO_LARGO })
+  contenido?: string;
 }
 
-// El tipo no cambia. archivoId reemplaza el archivo (el anterior se borra) y urlExterna, el enlace.
+// El tipo no cambia. archivoId reemplaza el archivo (el anterior se borra), urlExterna el enlace
+// y contenido el texto del articulo.
 export class ActualizarMaterialDto extends PartialType(PickType(CrearMaterialDto, ['titulo', 'descripcion'] as const)) {
   @IsOptional()
   @IsUUID('all', { message: 'El archivo no es válido.' })
@@ -99,6 +102,11 @@ export class ActualizarMaterialDto extends PartialType(PickType(CrearMaterialDto
   @IsUrl(URL_EXTERNA, { message: MENSAJE_URL })
   @MaxLength(500, { message: 'La dirección no puede pasar de 500 caracteres.' })
   urlExterna?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Escribe el contenido del artículo.' })
+  @MaxLength(ARTICULO_MAXIMO_CARACTERES, { message: MENSAJE_ARTICULO_LARGO })
+  contenido?: string;
 
   @IsISO8601({ strict: true }, { message: 'Falta la fecha de la última modificación que leíste.' })
   actualizadoEn: string;

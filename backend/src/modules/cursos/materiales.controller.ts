@@ -20,7 +20,8 @@ export class MaterialesController {
   @ApiOperation({
     summary: 'Agregar un material',
     description:
-      'Video, PDF, imagen o documento con el archivoId que devolvió POST /archivos, o un enlace con urlExterna. ' +
+      'Video, PDF, imagen o documento con el archivoId que devolvió POST /archivos, un enlace con urlExterna ' +
+      'o un artículo con su HTML en contenido (se limpia y suma 1 minuto por cada 240 palabras, D-37). ' +
       'Se agrega al final del tema y recalcula la duración del curso (RF-04.4, D-36).',
   })
   @Post('temas/:temaId/materiales')
@@ -45,7 +46,9 @@ export class MaterialesController {
 
   @ApiOperation({
     summary: 'Editar un material',
-    description: 'Un archivoId nuevo reemplaza el archivo y borra el anterior. Envía el actualizadoEn que leíste (V-13).',
+    description:
+      'Un archivoId nuevo reemplaza el archivo y borra el anterior; contenido reemplaza el texto de un artículo. ' +
+      'Envía el actualizadoEn que leíste (V-13).',
   })
   @Patch('materiales/:id')
   actualizar(

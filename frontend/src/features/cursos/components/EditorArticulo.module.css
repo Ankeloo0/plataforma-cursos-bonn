@@ -1,0 +1,184 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-1);
+}
+
+.etiqueta {
+  font-size: var(--texto-sm);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--texto-secundario);
+}
+
+.marco {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+  transition: border-color var(--dur-rapida) var(--curva-salida);
+}
+
+.marco:hover {
+  border-color: var(--gris-500);
+}
+
+.marco:focus-within {
+  border-color: var(--color-marca);
+  box-shadow: 0 0 0 1px var(--color-marca);
+}
+
+.marco[aria-invalid='true'] {
+  border-color: var(--color-critico);
+}
+
+/* La barra queda visible al desplazar un articulo largo dentro del panel */
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  padding: var(--esp-1) var(--esp-2);
+  border-bottom: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md) var(--radio-md) 0 0;
+  background: var(--fondo-secundario);
+}
+
+.grupo {
+  display: flex;
+  gap: 2px;
+}
+
+.grupo + .grupo {
+  padding-left: var(--esp-1);
+  border-left: 1px solid var(--borde-suave);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-sm);
+  background: transparent;
+  color: var(--gris-800);
+  cursor: pointer;
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.boton:hover {
+  background: var(--gris-200);
+}
+
+.boton[aria-pressed='true'] {
+  background: var(--color-marca-tinte);
+  color: var(--color-marca);
+}
+
+.boton:focus-visible {
+  outline: none;
+  box-shadow: var(--foco);
+}
+
+.enlace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  padding: var(--esp-3) var(--esp-4);
+  border-bottom: 1px solid var(--borde-suave);
+}
+
+.accionesEnlace {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+/* El area editable (clase que TipTap pone en el contenteditable) */
+.area {
+  min-height: 320px;
+  padding: var(--esp-4) var(--esp-5);
+  font-size: var(--texto-base);
+  line-height: 1.65;
+  color: var(--texto);
+  outline: none;
+}
+
+.area > * + * {
+  margin-top: var(--esp-3);
+}
+
+.area h2 {
+  margin-top: var(--esp-6);
+  font-size: var(--texto-xl);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.area h3 {
+  margin-top: var(--esp-5);
+  font-size: var(--texto-lg);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.area > :first-child {
+  margin-top: 0;
+}
+
+.area ul,
+.area ol {
+  padding-left: var(--esp-6);
+}
+
+.area ul {
+  list-style: disc;
+}
+
+.area ol {
+  list-style: decimal;
+}
+
+.area li + li {
+  margin-top: var(--esp-1);
+}
+
+.area blockquote {
+  padding-left: var(--esp-4);
+  border-left: 3px solid var(--gris-300);
+  color: var(--texto-secundario);
+}
+
+.area a {
+  color: var(--color-marca);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.resumen {
+  padding: var(--esp-2) var(--esp-4);
+  border-top: 1px solid var(--borde-suave);
+  font-size: var(--texto-sm);
+  color: var(--texto-terciario);
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-1);
+  font-size: var(--texto-sm);
+  line-height: 1.45;
+  color: var(--color-critico);
+}
+
+@media (max-width: 639px) {
+  .area {
+    min-height: 240px;
+    padding: var(--esp-3) var(--esp-4);
+  }
+}

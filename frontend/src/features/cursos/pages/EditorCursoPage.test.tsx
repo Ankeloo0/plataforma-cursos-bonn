@@ -37,6 +37,7 @@ const material = (datos: Partial<Material>): Material => ({
   duracionSegundos: 0,
   archivo: null,
   urlExterna: null,
+  contenido: null,
   actualizadoEn: '2026-10-08T15:00:00Z',
   ...datos,
 });
@@ -63,6 +64,13 @@ const temas = (): Tema[] => [
       material({ id: 'm1', tipo: 'VIDEO', titulo: 'Bienvenida', duracionSegundos: 720, archivo: archivo(80 * 1024 * 1024) }),
       material({ id: 'm2', tipo: 'PDF', titulo: 'Reglamento', archivo: archivo(2.3 * 1024 * 1024) }),
       material({ id: 'm3', tipo: 'ENLACE', titulo: 'Manual', urlExterna: 'https://www.vw.com.mx/manual', activo: false }),
+      material({
+        id: 'm4',
+        tipo: 'ARTICULO',
+        titulo: 'Recepción del vehículo',
+        duracionSegundos: 240,
+        contenido: '<h2>Antes de empezar</h2><p>Saluda al cliente y revisa la orden.</p><ul><li>Kilometraje</li></ul>',
+      }),
     ],
   },
   { id: 't2', cursoId: 'c1', titulo: 'Equipo de protección', descripcion: null, orden: 2, activo: true, actualizadoEn: '2026-10-08T15:00:00Z', materiales: [] },
@@ -89,6 +97,7 @@ describe('Editor de contenido del curso', () => {
     expect(screen.getByText('Video · 12 min')).toBeInTheDocument();
     expect(screen.getByText('PDF · 2.3 MB')).toBeInTheDocument();
     expect(screen.getByText('Enlace · vw.com.mx')).toBeInTheDocument();
+    expect(screen.getByText('Artículo · 4 min')).toBeInTheDocument();
     expect(screen.getByText('Oculto')).toBeInTheDocument();
     expect(screen.getByText('Sin materiales')).toBeInTheDocument();
     expect(screen.getByText('1 h 25 min')).toBeInTheDocument();
@@ -192,6 +201,53 @@ describe('Editor de contenido del curso', () => {
 
     expect(await within(panel).findByText('El archivo pesa más de 50 MB, el máximo para este tipo.')).toBeInTheDocument();
     expect(subir).not.toHaveBeenCalled();
+  });
+
+  it('un artículo nuevo no se guarda sin texto y el panel se ensancha para escribirlo', async () => {
+    conSesion({ permisos: ['CURSOS_GESTIONAR'] });
+    vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
+    vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+    const crear = vi.spyOn(contenidoService, 'crearMaterial');
+    abrir();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar material al tema 2' }));
+    const panel = screen.getByRole('dialog', { name: 'Nuevo material' });
+    fireEvent.click(within(panel).getByRole('radio', { name: /Artículo/ }));
+
+    expect(within(panel).getByRole('toolbar', { name: 'Formato del artículo' })).toBeInTheDocument();
+    expect(panel.querySelector('[data-panel-amplio]')).not.toBeNull();
+    expect(within(panel).getByText('Sin texto todavía')).toBeInTheDocument();
+    fireEvent.change(within(panel).getByLabelText(/Título/), { target: { value: 'Recepción' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Agregar material' }));
+
+    expect(await within(panel).findByText('Escribe el contenido del artículo.')).toBeInTheDocument();
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it('al editar un artículo muestra su formato y envía su contenido', async () => {
+    conSesion({ permisos: ['CURSOS_GESTIONAR'] });
+    vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
+    vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+    const actualizar = vi.spyOn(contenidoService, 'actualizarMaterial').mockResolvedValue(material({}));
+    abrir();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Acciones de Recepción del vehículo' }));
+    expect(screen.queryByRole('button', { name: 'Abrir' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Editar material' }));
+    const panel = screen.getByRole('dialog', { name: 'Editar material' });
+
+    expect(within(panel).getByRole('heading', { level: 2, name: 'Antes de empezar' })).toBeInTheDocument();
+    expect(within(panel).getByText('Kilometraje')).toBeInTheDocument();
+    expect(within(panel).getByText('11 palabras · 1 min de lectura')).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() =>
+      expect(actualizar).toHaveBeenCalledWith(
+        'm4',
+        expect.objectContaining({ titulo: 'Recepción del vehículo', contenido: expect.stringContaining('<h2>Antes de empezar</h2>') }),
+        '2026-10-08T15:00:00Z',
+      ),
+    );
   });
 
   it('al editar los datos del curso envía el actualizadoEn que leyó y muestra el aviso si otro guardó antes (V-13)', async () => {

@@ -18,8 +18,10 @@ export const TIPOS_MATERIAL: Record<TipoMaterial, InfoTipo> = {
   ARTICULO: { etiqueta: 'Artículo', icono: AlignLeft, descripcion: 'Texto escrito aquí' },
 };
 
-// Los articulos llegan en I3.3
-export const TIPOS_DISPONIBLES: TipoMaterial[] = ['VIDEO', 'PDF', 'IMAGEN', 'DOCUMENTO', 'ENLACE'];
+export const TIPOS_DISPONIBLES: TipoMaterial[] = ['VIDEO', 'PDF', 'IMAGEN', 'DOCUMENTO', 'ENLACE', 'ARTICULO'];
+
+// Mismo limite que valida la API (technical-spec 4.8)
+export const ARTICULO_MAXIMO_CARACTERES = 100_000;
 
 // Mismos tipos y limites que valida la API (P-10); aqui solo evitan subir un archivo que se rechazara
 export const ARCHIVO_POR_TIPO: Record<TipoArchivo, { accept: string; maximo: number; ayuda: string }> = {
@@ -65,10 +67,10 @@ function dominio(url: string): string {
   }
 }
 
-// El dato de cada fila del plan: "Video · 12 min", "PDF · 2.3 MB", "Enlace · youtube.com"
+// El dato de cada fila del plan: "Video · 12 min", "PDF · 2.3 MB", "Enlace · youtube.com", "Artículo · 4 min"
 export function detalleMaterial(material: Material): string {
   const etiqueta = TIPOS_MATERIAL[material.tipo].etiqueta;
-  if (material.tipo === 'VIDEO') return `${etiqueta} · ${duracionCorta(material.duracionSegundos)}`;
+  if (material.tipo === 'VIDEO' || material.tipo === 'ARTICULO') return `${etiqueta} · ${duracionCorta(material.duracionSegundos)}`;
   if (material.tipo === 'ENLACE' && material.urlExterna) return `${etiqueta} · ${dominio(material.urlExterna)}`;
   if (material.archivo) return `${etiqueta} · ${tamano(material.archivo.tamanoBytes)}`;
   return etiqueta;
@@ -77,4 +79,15 @@ export function detalleMaterial(material: Material): string {
 // El nombre del archivo sin su extension, como titulo inicial del material
 export function tituloDesdeArchivo(nombre: string): string {
   return nombre.replace(/\.[^.]+$/, '').slice(0, 150);
+}
+
+export function contarPalabras(texto: string): number {
+  return texto.split(/\s+/).filter(Boolean).length;
+}
+
+// "850 palabras · 4 min de lectura": 1 minuto por cada 240 palabras, como lo calcula la API (D-36)
+export function resumenLectura(palabras: number): string {
+  if (palabras === 0) return 'Sin texto todavía';
+  const minutos = Math.ceil(palabras / 240);
+  return `${palabras.toLocaleString('es-MX')} ${palabras === 1 ? 'palabra' : 'palabras'} · ${minutos} min de lectura`;
 }
