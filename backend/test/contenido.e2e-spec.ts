@@ -87,8 +87,17 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
         activo: true,
         duracionSegundos: 3,
         urlExterna: null,
-        archivo: { id: subido.body.id, mimeType: 'video/mp4', estado: 'LISTO' },
+        archivo: { id: subido.body.id, mimeType: 'video/mp4', estado: 'PROCESANDO' },
       });
+
+      // FFmpeg lo comprime en segundo plano (RF-04.6); mientras tanto el original se puede ver
+      await vi.waitFor(
+        async () => {
+          const temas = await http().get(`/api/v1/cursos/${cursoId}/temas`).set('Cookie', cookie).expect(200);
+          expect(temas.body[0].materiales[0].archivo.estado).toBe('LISTO');
+        },
+        { timeout: 20_000, interval: 250 },
+      );
 
       const parcial = await http().get(material.body.archivo.url).set('Cookie', cookie).set('Range', 'bytes=0-99').expect(206);
       expect(parcial.headers['content-range']).toMatch(/^bytes 0-99\/\d+$/);

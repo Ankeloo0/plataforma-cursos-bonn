@@ -3,6 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import type { UsuarioSesion } from '../../common/interfaces/usuario-sesion.interface.js';
 import { ArchivosService } from '../archivos/archivos.service.js';
+import { CompresionVideoService } from '../archivos/compresion-video.service.js';
 import { MediosService } from '../archivos/medios.service.js';
 import { duracionDelArticuloSegundos, limpiarArticulo, palabrasDelArticulo } from './articulo.js';
 import { CursosRepository } from './cursos.repository.js';
@@ -24,6 +25,7 @@ interface DatosDeArchivo {
 type DatosDeFuente = Pick<Material, 'archivoId' | 'urlExterna' | 'contenido' | 'duracionSegundos' | 'textoExtraido'>;
 
 // Materiales de un tema (RF-04.4). El archivo ya se subio con POST /archivos (technical-spec 4.8).
+// Un video se comprime despues de guardarlo, para no gastar CPU en subidas que se cancelan (RF-04.6).
 @Injectable()
 export class MaterialesService {
   constructor(
@@ -32,6 +34,7 @@ export class MaterialesService {
     private readonly cursosRepository: CursosRepository,
     private readonly archivosService: ArchivosService,
     private readonly mediosService: MediosService,
+    private readonly compresionVideo: CompresionVideoService,
     @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
@@ -55,6 +58,7 @@ export class MaterialesService {
       await this.cursosRepository.recalcularDuracion(tema.cursoId, actor.id, manager);
       return nuevo;
     });
+    if (datos.tipo === TIPOS_MATERIAL.VIDEO) await this.compresionVideo.encolar(fuente.archivoId!);
     return this.obtener(material.id);
   }
 
@@ -86,6 +90,7 @@ export class MaterialesService {
       await this.cursosRepository.recalcularDuracion(tema.cursoId, actor.id, manager);
     });
     if (reemplazo && material.archivoId) await this.archivosService.eliminar(material.archivoId);
+    if (reemplazo && material.tipo === TIPOS_MATERIAL.VIDEO) await this.compresionVideo.encolar(reemplazo.archivoId);
     return this.obtener(id);
   }
 

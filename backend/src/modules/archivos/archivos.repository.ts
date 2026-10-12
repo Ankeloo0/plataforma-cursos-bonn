@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { Archivo } from './entities/archivo.entity.js';
+import { Archivo, ESTADOS_ARCHIVO, type EstadoArchivo } from './entities/archivo.entity.js';
 
 // Foto: el usuario cuya foto es este archivo y su sucursal (null si no es empleado).
 // Portada y material: quien creo el curso.
@@ -26,6 +26,25 @@ export class ArchivosRepository {
 
   async eliminar(id: string): Promise<void> {
     await this.repo.delete({ id });
+  }
+
+  async cambiarEstado(id: string, estado: EstadoArchivo): Promise<void> {
+    await this.repo.update({ id }, { estado });
+  }
+
+  async idsConEstado(estado: EstadoArchivo): Promise<string[]> {
+    const filas = await this.repo.find({ where: { estado }, select: { id: true } });
+    return filas.map((f) => f.id);
+  }
+
+  // Solo si el archivo sigue esperando su compresion: si lo borraron o reemplazaron mientras FFmpeg
+  // trabajaba, no se toca y quien llama borra el video comprimido.
+  async guardarComprimido(id: string, storageKey: string, tamanoBytes: number): Promise<boolean> {
+    const resultado = await this.repo.update(
+      { id, estado: ESTADOS_ARCHIVO.PROCESANDO },
+      { storageKey, tamanoBytes: String(tamanoBytes), estado: ESTADOS_ARCHIVO.LISTO },
+    );
+    return resultado.affected === 1;
   }
 
   async usadoPorMaterial(id: string): Promise<boolean> {

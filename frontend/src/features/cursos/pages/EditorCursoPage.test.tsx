@@ -105,6 +105,26 @@ describe('Editor de contenido del curso', () => {
     expect(screen.getByRole('button', { name: 'Mover el tema 1, Introducción' })).toBeInTheDocument();
   });
 
+  it('mientras un video se comprime revisa el plan cada 5 s y quita "Procesando" al terminar (RF-04.6)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    conSesion({ permisos: ['CURSOS_GESTIONAR'] });
+    vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
+    const procesando = temas();
+    procesando[0].materiales[0].archivo = { ...archivo(80 * 1024 * 1024), estado: 'PROCESANDO' };
+    const listarTemas = vi.spyOn(contenidoService, 'listarTemas').mockResolvedValueOnce(procesando).mockResolvedValue(temas());
+    abrir();
+
+    expect(await screen.findByText('Procesando')).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(5000);
+    await waitFor(() => expect(screen.queryByText('Procesando')).not.toBeInTheDocument());
+    expect(listarTemas).toHaveBeenCalledTimes(2);
+
+    // Sin videos en proceso ya no vuelve a pedir el plan
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(listarTemas).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
   it('sin permiso de edición se consulta sin asas, sin menús de edición ni botón para agregar', async () => {
     conSesion({ permisos: ['CURSOS_ASIGNAR'] });
     vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso({ puedeEditar: false }));

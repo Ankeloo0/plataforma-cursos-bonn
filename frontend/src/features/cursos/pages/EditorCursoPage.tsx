@@ -1,5 +1,5 @@
 import { Clock, ExternalLink, Eye, EyeOff, Layers, ListTree, Pencil, Plus, RotateCw, Settings2, Trash2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Alerta } from '../../../components/ui/Alerta';
 import { Button } from '../../../components/ui/Button';
@@ -29,6 +29,9 @@ type Panel =
   | { tipo: 'material'; tema: Tema; material?: Material }
   | null;
 
+// Un video de 500 MB tarda minutos en comprimirse; revisar cada 5 s basta en la red local
+const SEGUNDOS_ENTRE_REVISIONES = 5;
+
 type Confirmacion = { tipo: 'tema'; tema: Tema } | { tipo: 'material'; material: Material } | null;
 
 // Editor de contenido del curso (RF-04.3, RF-04.4; brief en .impeccable/surfaces). Cada cambio se guarda
@@ -51,6 +54,15 @@ export function EditorCursoPage() {
     curso.recargar();
     temas.recargar();
   };
+
+  // Mientras FFmpeg comprime un video se vuelve a pedir el plan, para quitar "Procesando" al terminar (RF-04.6)
+  const hayVideoProcesando = temas.datos?.some((t) => t.materiales.some((m) => m.archivo?.estado === 'PROCESANDO')) ?? false;
+  const recargarTemas = temas.recargar;
+  useEffect(() => {
+    if (!hayVideoProcesando) return;
+    const intervalo = setInterval(recargarTemas, SEGUNDOS_ENTRE_REVISIONES * 1000);
+    return () => clearInterval(intervalo);
+  }, [hayVideoProcesando, recargarTemas]);
 
   const cerrarPanel = () => {
     setPanel(null);

@@ -1,6 +1,7 @@
 import type { DataSource } from 'typeorm';
 import type { UsuarioSesion } from '../../common/interfaces/usuario-sesion.interface.js';
 import type { ArchivosService } from '../archivos/archivos.service.js';
+import type { CompresionVideoService } from '../archivos/compresion-video.service.js';
 import type { MediosService } from '../archivos/medios.service.js';
 import type { CursosRepository } from './cursos.repository.js';
 import type { MaterialesRepository } from './materiales.repository.js';
@@ -44,6 +45,7 @@ function crear(tipoDelArchivo = 'VIDEO', material = materialDe()) {
     eliminar: vi.fn(),
   };
   const medios = { duracionVideoSegundos: vi.fn().mockResolvedValue(754), textoPdf: vi.fn().mockResolvedValue('texto') };
+  const compresion = { encolar: vi.fn() };
   const dataSource = { transaction: vi.fn((trabajo: (m: object) => Promise<unknown>) => trabajo(manager)) };
   const servicio = new MaterialesService(
     repo as unknown as MaterialesRepository,
@@ -51,9 +53,10 @@ function crear(tipoDelArchivo = 'VIDEO', material = materialDe()) {
     cursos as unknown as CursosRepository,
     archivos as unknown as ArchivosService,
     medios as unknown as MediosService,
+    compresion as unknown as CompresionVideoService,
     dataSource as unknown as DataSource,
   );
-  return { servicio, repo, cursos, archivos, medios, manager };
+  return { servicio, repo, cursos, archivos, medios, compresion, manager };
 }
 
 describe('MaterialesService', () => {
@@ -69,12 +72,33 @@ describe('MaterialesService', () => {
     expect(cursos.recalcularDuracion).toHaveBeenCalledWith('c1', 'a1', manager);
   });
 
+  it('un video se manda a comprimir despues de guardar el material (RF-04.6)', async () => {
+    const { servicio, repo, compresion } = crear('VIDEO');
+
+    await servicio.crear('t1', { tipo: 'VIDEO', titulo: 'Bienvenida', archivoId: 'nuevo' }, admin);
+
+    expect(compresion.encolar).toHaveBeenCalledWith('nuevo');
+    expect(compresion.encolar.mock.invocationCallOrder[0]).toBeGreaterThan(repo.crear.mock.invocationCallOrder[0]);
+  });
+
+  it('al reemplazar un video comprime el nuevo; si solo cambia el titulo, no comprime nada', async () => {
+    const { servicio, compresion } = crear('VIDEO', materialDe({ tipo: 'VIDEO' }));
+    const actualizadoEn = new Date().toISOString();
+
+    await servicio.actualizar('m1', { titulo: 'Otro titulo', actualizadoEn }, admin);
+    expect(compresion.encolar).not.toHaveBeenCalled();
+
+    await servicio.actualizar('m1', { archivoId: 'nuevo', actualizadoEn }, admin);
+    expect(compresion.encolar).toHaveBeenCalledWith('nuevo');
+  });
+
   it('un PDF guarda su texto para el asistente y no suma duracion (D-33)', async () => {
-    const { servicio, repo, medios } = crear('PDF');
+    const { servicio, repo, medios, compresion } = crear('PDF');
 
     await servicio.crear('t1', { tipo: 'PDF', titulo: 'Manual', archivoId: 'nuevo' }, admin);
 
     expect(medios.duracionVideoSegundos).not.toHaveBeenCalled();
+    expect(compresion.encolar).not.toHaveBeenCalled();
     expect(repo.crear.mock.calls[0][0]).toMatchObject({ textoExtraido: 'texto', duracionSegundos: 0 });
   });
 

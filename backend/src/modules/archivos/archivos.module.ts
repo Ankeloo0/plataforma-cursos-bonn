@@ -7,6 +7,7 @@ import { AlmacenamientoService } from './almacenamiento.service.js';
 import { ArchivosController } from './archivos.controller.js';
 import { ArchivosRepository } from './archivos.repository.js';
 import { ArchivosService } from './archivos.service.js';
+import { CompresionVideoService } from './compresion-video.service.js';
 import { Archivo } from './entities/archivo.entity.js';
 import { MediosService } from './medios.service.js';
 
@@ -24,7 +25,7 @@ import { MediosService } from './medios.service.js';
     }),
   ],
   controllers: [ArchivosController],
-  providers: [ArchivosRepository, ArchivosService, AlmacenamientoService, MediosService],
-  exports: [ArchivosService, MediosService],
+  providers: [ArchivosRepository, ArchivosService, AlmacenamientoService, MediosService, CompresionVideoService],
+  exports: [ArchivosService, MediosService, CompresionVideoService],
 })
 export class ArchivosModule {}
