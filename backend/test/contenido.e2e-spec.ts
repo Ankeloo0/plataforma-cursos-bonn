@@ -283,14 +283,32 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
       expect(enlace.body).toMatchObject({ tipo: 'ENLACE', urlExterna: 'https://www.vw.com.mx/manual', archivo: null });
     });
 
-    it('los artículos todavía no se aceptan (I3.3)', async () => {
+    it('un artículo se guarda limpio, suma su tiempo de lectura al curso y se puede editar (D-37)', async () => {
       const { cookie, cursoId } = await creadorConCurso();
       const tema = await crearTema(cookie, cursoId);
-      await http()
-        .post(`/api/v1/temas/${tema.id}/materiales`)
+      const crear = (contenido: unknown) =>
+        http().post(`/api/v1/temas/${tema.id}/materiales`).set('Cookie', cookie).send({ tipo: 'ARTICULO', titulo: 'Recepción', contenido });
+      const duracion = async () => (await http().get(`/api/v1/cursos/${cursoId}`).set('Cookie', cookie).expect(200)).body.duracionHoras;
+      // 21 600 palabras con el subtitulo = 90 minutos (1 minuto por cada 240)
+      const largo = Array.from({ length: 21_599 }, () => 'vw').join(' ');
+
+      const articulo = await crear(`<h2>Pasos</h2><p onclick="robar()">${largo}</p><script>alert(1)</script>`).expect(201);
+      expect(articulo.body).toMatchObject({ tipo: 'ARTICULO', archivo: null, urlExterna: null, duracionSegundos: 5400 });
+      expect(articulo.body.contenido).toBe(`<h2>Pasos</h2><p>${largo}</p>`);
+      const [fila] = await e2e.dataSource.query(`SELECT contenido FROM materiales WHERE id = $1`, [articulo.body.id]);
+      expect(fila.contenido).not.toContain('script');
+      expect(await duracion()).toBe(1.5);
+
+      const editado = await http()
+        .patch(`/api/v1/materiales/${articulo.body.id}`)
         .set('Cookie', cookie)
-        .send({ tipo: 'ARTICULO', titulo: 'Artículo', archivoId: tema.id })
-        .expect(400);
+        .send({ contenido: '<p>Ahora es corto.</p>', actualizadoEn: articulo.body.actualizadoEn })
+        .expect(200);
+      expect(editado.body).toMatchObject({ contenido: '<p>Ahora es corto.</p>', duracionSegundos: 60 });
+
+      expect((await crear('<p> </p><script>alert(1)</script>').expect(422)).body.code).toBe('ARTICULO_VACIO');
+      await crear(`<p>${'a'.repeat(100_001)}</p>`).expect(400);
+      await crear(undefined).expect(400);
     });
 
     it('reemplazar el archivo borra el anterior; reordena dentro del tema', async () => {

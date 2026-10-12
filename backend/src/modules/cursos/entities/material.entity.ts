@@ -54,7 +54,7 @@ export class Material extends ColumnasAuditoria {
   @Column({ name: 'texto_extraido', type: 'text', nullable: true })
   textoExtraido: string | null;
 
-  // Video: la mide ffprobe (D-36). Los demas tipos de I3.2 valen 0.
+  // Video: la mide ffprobe. Articulo: 1 minuto por cada 240 palabras. Los demas tipos valen 0 (D-36).
   @Column({ name: 'duracion_segundos', type: 'integer', default: 0 })
   duracionSegundos: number;
 }

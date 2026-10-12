@@ -122,6 +122,54 @@ describe('MaterialesService', () => {
     ).rejects.toMatchObject({ response: { code: 'MATERIAL_FUENTE_INVALIDA' } });
   });
 
+  it('un articulo guarda su HTML limpio y suma 1 minuto por cada 240 palabras (D-37)', async () => {
+    const { servicio, repo, archivos, cursos, manager } = crear();
+    const texto = Array.from({ length: 300 }, () => 'palabra').join(' ');
+
+    await servicio.crear('t1', { tipo: 'ARTICULO', titulo: 'Recepcion', contenido: `<p>${texto}</p><script>alert(1)</script>` }, admin);
+
+    expect(archivos.exigirParaMaterial).not.toHaveBeenCalled();
+    expect(repo.crear.mock.calls[0][0]).toMatchObject({
+      contenido: `<p>${texto}</p>`,
+      duracionSegundos: 120,
+      archivoId: null,
+      urlExterna: null,
+      textoExtraido: null,
+    });
+    expect(cursos.recalcularDuracion).toHaveBeenCalledWith('c1', 'a1', manager);
+  });
+
+  it('rechaza un articulo que se queda sin texto al limpiarlo', async () => {
+    const { servicio, repo } = crear();
+
+    await expect(
+      servicio.crear('t1', { tipo: 'ARTICULO', titulo: 'Vacio', contenido: '<p> </p><script>alert(1)</script>' }, admin),
+    ).rejects.toMatchObject({ response: { code: 'ARTICULO_VACIO' } });
+    expect(repo.crear).not.toHaveBeenCalled();
+  });
+
+  it('al editar un articulo recalcula su duracion con el texto nuevo', async () => {
+    const { servicio, repo, cursos } = crear('PDF', materialDe({ tipo: 'ARTICULO', archivoId: null, contenido: '<p>Antes</p>' }));
+
+    await servicio.actualizar('m1', { contenido: '<p>Texto nuevo</p>', actualizadoEn: new Date().toISOString() }, admin);
+
+    expect(repo.actualizarSiNoCambio.mock.calls[0][2]).toMatchObject({ contenido: '<p>Texto nuevo</p>', duracionSegundos: 60 });
+    expect(cursos.recalcularDuracion).toHaveBeenCalled();
+  });
+
+  it('cada tipo solo acepta su fuente al editar', async () => {
+    const articulo = crear('PDF', materialDe({ tipo: 'ARTICULO', archivoId: null }));
+    const conArchivo = crear('PDF');
+    const actualizadoEn = new Date().toISOString();
+
+    await expect(articulo.servicio.actualizar('m1', { archivoId: 'nuevo', actualizadoEn }, admin)).rejects.toMatchObject({
+      response: { code: 'MATERIAL_FUENTE_INVALIDA' },
+    });
+    await expect(conArchivo.servicio.actualizar('m1', { contenido: '<p>Hola</p>', actualizadoEn }, admin)).rejects.toMatchObject({
+      response: { code: 'MATERIAL_FUENTE_INVALIDA' },
+    });
+  });
+
   it('el orden debe traer exactamente los materiales del tema', async () => {
     const { servicio, repo } = crear();
     repo.listarPorTemas.mockResolvedValue([{ id: 'm1' }, { id: 'm2' }]);

@@ -51,7 +51,7 @@ describe('Cursos', () => {
     expect(within(tarjeta).getByText('1 h 25 min')).toBeInTheDocument();
     expect(within(tarjeta).getByText('Obligatorio')).toBeInTheDocument();
     expect(within(tarjeta).getByText('Vence 15 dic 2026')).toBeInTheDocument();
-    expect(within(tarjeta).getByText('Cursos')).toBeInTheDocument();
+    expect(tarjeta.querySelector('img')).toHaveAttribute('src', expect.stringContaining('grupo-bonn-logo'));
   });
 
   it('la tarjeta lleva al editor de contenido del curso', async () => {

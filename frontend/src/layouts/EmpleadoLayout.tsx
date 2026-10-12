@@ -19,7 +19,7 @@ export function EmpleadoLayout() {
       </a>
       <header className={styles.superior}>
         <div className={styles.barra}>
-          <NavLink to="/" className={styles.logo} aria-label="Cursos, ir al inicio">
+          <NavLink to="/" className={styles.logo} aria-label="Grupo Bonn, ir al inicio">
             <LogoPlataforma />
           </NavLink>
           <nav aria-label="Principal">

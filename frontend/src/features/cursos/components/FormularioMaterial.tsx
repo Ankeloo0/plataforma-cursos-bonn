@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Alerta } from '../../../components/ui/Alerta';
 import { AreaTexto } from '../../../components/ui/AreaTexto';
@@ -10,8 +10,9 @@ import { Input } from '../../../components/ui/Input';
 import type { ApiError } from '../../../services/api/client';
 import { useSubida } from '../hooks/useSubida';
 import type { DatosMaterial, Material, TipoMaterial } from '../types/contenido.types';
-import { esTipoArchivo, TIPOS_DISPONIBLES, TIPOS_MATERIAL, tituloDesdeArchivo } from '../utils/material';
+import { ARTICULO_MAXIMO_CARACTERES, esTipoArchivo, TIPOS_DISPONIBLES, TIPOS_MATERIAL, tituloDesdeArchivo } from '../utils/material';
 import { CampoArchivo } from './CampoArchivo';
+import { EditorArticulo } from './EditorArticulo';
 import styles from './FormularioMaterial.module.css';
 
 export interface PropsFormularioMaterial {
@@ -66,6 +67,14 @@ function esquemaPara(tipo: TipoMaterial) {
       tipo === 'ENLACE'
         ? z.string().trim().max(500, 'Máximo 500 caracteres.').regex(/^https?:\/\/\S+$/i, MENSAJE_URL)
         : z.string(),
+    // El editor entrega '' cuando el articulo no tiene texto
+    contenido:
+      tipo === 'ARTICULO'
+        ? z
+            .string()
+            .min(1, 'Escribe el contenido del artículo.')
+            .max(ARTICULO_MAXIMO_CARACTERES, 'El artículo es demasiado largo. Divídelo en dos materiales.')
+        : z.string(),
   });
 }
 
@@ -85,6 +94,7 @@ function CamposMaterial({
 
   const {
     register,
+    control,
     handleSubmit,
     getValues,
     setValue,
@@ -96,6 +106,7 @@ function CamposMaterial({
       titulo: material?.titulo ?? '',
       descripcion: material?.descripcion ?? '',
       urlExterna: material?.urlExterna ?? '',
+      contenido: material?.contenido ?? '',
     },
   });
 
@@ -119,6 +130,7 @@ function CamposMaterial({
     setErrorServidor(null);
     const datos: DatosMaterial = { titulo: valores.titulo, descripcion: valores.descripcion || null };
     if (tipo === 'ENLACE') datos.urlExterna = valores.urlExterna;
+    if (tipo === 'ARTICULO') datos.contenido = valores.contenido;
     if (subida.estado.fase === 'listo') datos.archivoId = subida.estado.subido.id;
 
     subida.marcarUsado(true);
@@ -156,6 +168,15 @@ function CamposMaterial({
         />
       )}
       <Input etiqueta="Título" required autoComplete="off" error={errors.titulo?.message} {...register('titulo')} />
+      {tipo === 'ARTICULO' && (
+        <Controller
+          name="contenido"
+          control={control}
+          render={({ field, fieldState }) => (
+            <EditorArticulo valorInicial={field.value} alCambiar={field.onChange} error={fieldState.error?.message} />
+          )}
+        />
+      )}
       <AreaTexto
         etiqueta="Descripción"
         rows={3}

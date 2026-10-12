@@ -10,6 +10,11 @@
   box-shadow: var(--sombra-2);
 }
 
+/* Un contenido que necesita mas espacio (el editor de articulos) lo pide con data-panel-amplio */
+.panel:has([data-panel-amplio]) {
+  width: min(720px, 100vw);
+}
+
 .panel::backdrop {
   background: rgb(19 28 36 / 0.32);
 }

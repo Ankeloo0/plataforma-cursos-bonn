@@ -42,3 +42,5 @@ infra/GUIA-DOCKER.md
 *.p12
 *.sql.gz
 *.dump
+
+/landing

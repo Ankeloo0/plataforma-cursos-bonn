@@ -7,7 +7,7 @@ import { guardarOrden, siguienteOrden } from './orden.js';
 
 export type DatosMaterial = Pick<
   Material,
-  'temaId' | 'tipo' | 'titulo' | 'descripcion' | 'archivoId' | 'urlExterna' | 'textoExtraido' | 'duracionSegundos' | 'creadoPor'
+  'temaId' | 'tipo' | 'titulo' | 'descripcion' | 'archivoId' | 'urlExterna' | 'contenido' | 'textoExtraido' | 'duracionSegundos' | 'creadoPor'
 >;
 
 @Injectable()

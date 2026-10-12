@@ -26,6 +26,8 @@ export class MaterialResponseDto {
   duracionSegundos: number;
   archivo: ArchivoDeMaterialDto | null;
   urlExterna: string | null;
+  // HTML del articulo, ya limpiado por la API al guardarlo (D-37)
+  contenido: string | null;
   actualizadoEn: string;
 
   // texto_extraido no se envia: solo lo usa el asistente
@@ -51,6 +53,7 @@ export class MaterialResponseDto {
           }
         : null,
       urlExterna: material.urlExterna,
+      contenido: material.contenido,
       actualizadoEn: material.actualizadoEn.toISOString(),
     };
   }

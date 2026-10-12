@@ -23,6 +23,8 @@ export interface Material {
   duracionSegundos: number;
   archivo: ArchivoDeMaterial | null;
   urlExterna: string | null;
+  // HTML del articulo, ya limpiado por la API
+  contenido: string | null;
   actualizadoEn: string;
 }
 
@@ -56,4 +58,5 @@ export interface DatosMaterial {
   descripcion: string | null;
   archivoId?: string;
   urlExterna?: string;
+  contenido?: string;
 }
