@@ -1,12 +1,12 @@
-import { Clock, ExternalLink, Eye, EyeOff, Layers, ListTree, Pencil, Plus, RotateCw, Settings2, Trash2 } from 'lucide-react';
+import { Archive, Clock, ExternalLink, Eye, EyeOff, Layers, ListTree, Pencil, Plus, RotateCcw, RotateCw, Send, Settings2, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { Alerta } from '../../../components/ui/Alerta';
 import { Button } from '../../../components/ui/Button';
 import { Chip } from '../../../components/ui/Chip';
 import { Dialogo } from '../../../components/ui/Dialogo';
 import { EstadoVacio } from '../../../components/ui/EstadoVacio';
-import type { Accion } from '../../../components/ui/MenuAcciones';
+import { MenuAcciones, type Accion } from '../../../components/ui/MenuAcciones';
 import pagina from '../../../components/ui/Pagina.module.css';
 import { PanelLateral } from '../../../components/ui/PanelLateral';
 import { Skeleton } from '../../../components/ui/Skeleton';
@@ -32,7 +32,12 @@ type Panel =
 // Un video de 500 MB tarda minutos en comprimirse; revisar cada 5 s basta en la red local
 const SEGUNDOS_ENTRE_REVISIONES = 5;
 
-type Confirmacion = { tipo: 'tema'; tema: Tema } | { tipo: 'material'; material: Material } | null;
+type Confirmacion =
+  | { tipo: 'tema'; tema: Tema }
+  | { tipo: 'material'; material: Material }
+  | { tipo: 'archivar' }
+  | { tipo: 'eliminarCurso' }
+  | null;
 
 // Editor de contenido del curso (RF-04.3, RF-04.4; brief en .impeccable/surfaces). Cada cambio se guarda
 // al momento y recalcula la duracion del curso, asi que despues de cada uno se vuelven a pedir los datos.
@@ -49,6 +54,8 @@ export function EditorCursoPage() {
   // Con una subida en curso, cerrar el panel pide confirmar
   const [subiendo, setSubiendo] = useState(false);
   const [confirmarCierre, setConfirmarCierre] = useState(false);
+  const [publicando, setPublicando] = useState(false);
+  const navegar = useNavigate();
 
   const recargarTodo = () => {
     curso.recargar();
@@ -136,15 +143,30 @@ export function EditorCursoPage() {
     mostrarToast(material ? 'Material actualizado' : 'Material agregado');
   }
 
+  async function publicar() {
+    setPublicando(true);
+    await ejecutar(async () => {
+      await cursosService.publicar(id);
+    }, 'Curso publicado');
+    setPublicando(false);
+  }
+
   async function confirmarEliminacion() {
     if (!confirmacion) return;
     setEliminando(true);
     setErrorConfirmacion(null);
     try {
-      if (confirmacion.tipo === 'tema') await contenidoService.eliminarTema(confirmacion.tema.id);
+      if (confirmacion.tipo === 'eliminarCurso') {
+        await cursosService.eliminar(id);
+        mostrarToast('Borrador eliminado');
+        navegar('/cursos');
+        return;
+      }
+      if (confirmacion.tipo === 'archivar') await cursosService.archivar(id);
+      else if (confirmacion.tipo === 'tema') await contenidoService.eliminarTema(confirmacion.tema.id);
       else await contenidoService.eliminarMaterial(confirmacion.material.id);
       setConfirmacion(null);
-      mostrarToast(confirmacion.tipo === 'tema' ? 'Tema eliminado' : 'Material eliminado');
+      mostrarToast(TOAST_CONFIRMACION[confirmacion.tipo]);
       recargarTodo();
     } catch (error) {
       setErrorConfirmacion((error as ApiError).message);
@@ -190,6 +212,29 @@ export function EditorCursoPage() {
           },
       { etiqueta: 'Eliminar material', icono: Trash2, peligro: true, alElegir: () => setConfirmacion({ tipo: 'material', material }) },
     ];
+  };
+
+  const accionesCurso = (): Accion[] => {
+    if (!curso.datos) return [];
+    const { estado, puedeArchivar, puedePublicar, puedeEditar } = curso.datos;
+    const acciones: Accion[] = [];
+    if (estado === 'PUBLICADO' && puedeArchivar) {
+      acciones.push({ etiqueta: 'Archivar curso', icono: Archive, alElegir: () => setConfirmacion({ tipo: 'archivar' }) });
+    }
+    if (estado === 'ARCHIVADO' && puedePublicar) {
+      acciones.push({
+        etiqueta: 'Reactivar curso',
+        icono: RotateCcw,
+        alElegir: () =>
+          ejecutar(async () => {
+            await cursosService.reactivar(id);
+          }, 'Curso reactivado'),
+      });
+    }
+    if (estado === 'BORRADOR' && puedeEditar) {
+      acciones.push({ etiqueta: 'Eliminar borrador', icono: Trash2, peligro: true, alElegir: () => setConfirmacion({ tipo: 'eliminarCurso' }) });
+    }
+    return acciones;
   };
 
   if (curso.estado === 'error' && !curso.datos) {
@@ -248,11 +293,22 @@ export function EditorCursoPage() {
               {!editable && <span className={styles.dato}>Solo consulta</span>}
             </div>
           </div>
-          {editable && (
-            <Button variante="secundario" icono={Settings2} onClick={() => setPanel({ tipo: 'curso' })}>
-              Datos del curso
+          <div className={styles.acciones}>
+            <Button variante="secundario" icono={Eye} onClick={() => navegar(`/cursos/${id}/vista-previa`)}>
+              Vista previa
             </Button>
-          )}
+            {editable && (
+              <Button variante="secundario" icono={Settings2} onClick={() => setPanel({ tipo: 'curso' })}>
+                Datos del curso
+              </Button>
+            )}
+            {datos.estado === 'BORRADOR' && datos.puedePublicar && (
+              <Button icono={Send} cargando={publicando} textoCargando="Publicando…" onClick={publicar}>
+                Publicar
+              </Button>
+            )}
+            {accionesCurso().length > 0 && <MenuAcciones etiqueta="Más acciones del curso" acciones={accionesCurso()} />}
+          </div>
         </header>
       )}
 
@@ -352,9 +408,9 @@ export function EditorCursoPage() {
 
       <Dialogo
         abierto={confirmacion !== null}
-        titulo={confirmacion?.tipo === 'tema' ? `¿Eliminar el tema "${confirmacion.tema.titulo}"?` : '¿Eliminar este material?'}
-        textoConfirmar={confirmacion?.tipo === 'tema' ? 'Eliminar tema' : 'Eliminar material'}
-        textoCargando="Eliminando…"
+        titulo={tituloConfirmacion(confirmacion)}
+        textoConfirmar={confirmacion ? BOTON_CONFIRMACION[confirmacion.tipo] : ''}
+        textoCargando={confirmacion?.tipo === 'archivar' ? 'Archivando…' : 'Eliminando…'}
         peligro
         cargando={eliminando}
         error={errorConfirmacion}
@@ -364,16 +420,44 @@ export function EditorCursoPage() {
           setErrorConfirmacion(null);
         }}
       >
-        {confirmacion?.tipo === 'tema' ? (
+        {confirmacion?.tipo === 'archivar' && (
+          <p>Deja de estar pendiente para los empleados; quien lo completó conserva su certificado. Puedes reactivarlo después.</p>
+        )}
+        {confirmacion?.tipo === 'eliminarCurso' && <p>Se eliminan sus temas, materiales y archivos. No se puede deshacer.</p>}
+        {confirmacion?.tipo === 'tema' && (
           <p>
             {confirmacion.tema.materiales.length > 0
               ? `Se eliminan también ${confirmacion.tema.materiales.length === 1 ? 'su material' : `sus ${confirmacion.tema.materiales.length} materiales`} y sus archivos. No se puede deshacer.`
               : 'No se puede deshacer.'}
           </p>
-        ) : (
-          <p>Se elimina "{confirmacion?.material.titulo}" con su archivo. No se puede deshacer. Si solo quieres que deje de verse, ocúltalo.</p>
+        )}
+        {confirmacion?.tipo === 'material' && (
+          <p>Se elimina "{confirmacion.material.titulo}" con su archivo. No se puede deshacer. Si solo quieres que deje de verse, ocúltalo.</p>
         )}
       </Dialogo>
     </>
   );
+}
+
+type TipoConfirmacion = NonNullable<Confirmacion>['tipo'];
+
+const BOTON_CONFIRMACION: Record<TipoConfirmacion, string> = {
+  tema: 'Eliminar tema',
+  material: 'Eliminar material',
+  archivar: 'Archivar curso',
+  eliminarCurso: 'Eliminar borrador',
+};
+
+const TOAST_CONFIRMACION: Record<TipoConfirmacion, string> = {
+  tema: 'Tema eliminado',
+  material: 'Material eliminado',
+  archivar: 'Curso archivado',
+  eliminarCurso: 'Borrador eliminado',
+};
+
+function tituloConfirmacion(confirmacion: Confirmacion): string {
+  if (confirmacion?.tipo === 'tema') return `¿Eliminar el tema "${confirmacion.tema.titulo}"?`;
+  if (confirmacion?.tipo === 'archivar') return '¿Archivar el curso?';
+  if (confirmacion?.tipo === 'eliminarCurso') return '¿Eliminar el borrador?';
+  return '¿Eliminar este material?';
 }

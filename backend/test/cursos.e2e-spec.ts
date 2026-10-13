@@ -234,4 +234,104 @@ describe('Cursos (HU-14, I3.1)', () => {
       expect(respuesta.body.code).toBe('ARCHIVO_TIPO_NO_PERMITIDO');
     });
   });
+
+  describe('Publicar, archivar, reactivar y eliminar (HU-17, I3.5)', () => {
+    const ruta = (id: string, accion: string) => `/api/v1/cursos/${id}/${accion}`;
+
+    //curso del superusuario con un tema y un enlace: lo minimo para publicarlo
+    async function cursoCompleto() {
+      const curso = await http().post('/api/v1/cursos').set('Cookie', superCookie).send(datosCurso()).expect(201);
+      const tema = await http().post(`/api/v1/cursos/${curso.body.id}/temas`).set('Cookie', superCookie).send({ titulo: 'Bienvenida' }).expect(201);
+      await http()
+        .post(`/api/v1/temas/${tema.body.id}/materiales`)
+        .set('Cookie', superCookie)
+        .send({ tipo: 'ENLACE', titulo: 'Manual', urlExterna: 'https://www.vw.com.mx/manual' })
+        .expect(201);
+      return { id: curso.body.id as string, temaId: tema.body.id as string };
+    }
+
+    it('el superusuario publica, archiva y reactiva; publicadoEn queda con la primera publicación', async () => {
+      const { id } = await cursoCompleto();
+
+      const publicado = await http().post(ruta(id, 'publicar')).set('Cookie', superCookie).expect(200);
+      expect(publicado.body).toMatchObject({ estado: 'PUBLICADO', puedePublicar: true, puedeArchivar: true });
+      expect(publicado.body.publicadoEn).not.toBeNull();
+
+      const archivado = await http().post(ruta(id, 'archivar')).set('Cookie', superCookie).expect(200);
+      expect(archivado.body.estado).toBe('ARCHIVADO');
+
+      const reactivado = await http().post(ruta(id, 'reactivar')).set('Cookie', superCookie).expect(200);
+      expect(reactivado.body).toMatchObject({ estado: 'PUBLICADO', publicadoEn: publicado.body.publicadoEn });
+    });
+
+    it('no publica sin temas ni con un tema visible sin materiales; un tema oculto no cuenta (RN-04.2)', async () => {
+      const vacio = await http().post('/api/v1/cursos').set('Cookie', superCookie).send(datosCurso()).expect(201);
+      const sinTemas = await http().post(ruta(vacio.body.id, 'publicar')).set('Cookie', superCookie).expect(422);
+      expect(sinTemas.body.code).toBe('CURSO_INCOMPLETO');
+
+      const { id } = await cursoCompleto();
+      const otro = await http().post(`/api/v1/cursos/${id}/temas`).set('Cookie', superCookie).send({ titulo: 'Diagnóstico' }).expect(201);
+      const temaVacio = await http().post(ruta(id, 'publicar')).set('Cookie', superCookie).expect(422);
+      expect(temaVacio.body).toMatchObject({ code: 'CURSO_INCOMPLETO', message: expect.stringContaining('"Diagnóstico"') });
+
+      await http().post(`/api/v1/temas/${otro.body.id}/ocultar`).set('Cookie', superCookie).expect(200);
+      await http().post(ruta(id, 'publicar')).set('Cookie', superCookie).expect(200);
+    });
+
+    it('cada acción solo desde su estado: 409 CURSO_ESTADO_INVALIDO', async () => {
+      const { id } = await cursoCompleto();
+      expect((await http().post(ruta(id, 'archivar')).set('Cookie', superCookie).expect(409)).body.code).toBe('CURSO_ESTADO_INVALIDO');
+      await http().post(ruta(id, 'reactivar')).set('Cookie', superCookie).expect(409);
+      await http().post(ruta(id, 'publicar')).set('Cookie', superCookie).expect(200);
+      await http().post(ruta(id, 'publicar')).set('Cookie', superCookie).expect(409);
+    });
+
+    it('un administrador no publica sin un destino de sus sucursales, aunque sea el creador y tenga el permiso (V-11)', async () => {
+      const { sucursalA } = await crearDosSucursales(e2e.dataSource);
+      const admin = await crearAdministrador(e2e.dataSource, {
+        permisos: [PERMISOS.CURSOS_GESTIONAR, PERMISOS.CURSOS_PUBLICAR],
+        sucursalIds: [sucursalA.id],
+      });
+      const cookie = await iniciarSesion(e2e.app, admin.username);
+      const curso = await http().post('/api/v1/cursos').set('Cookie', cookie).send(datosCurso()).expect(201);
+      expect(curso.body).toMatchObject({ puedePublicar: false, puedeArchivar: true });
+
+      const respuesta = await http().post(ruta(curso.body.id, 'publicar')).set('Cookie', cookie).expect(422);
+      expect(respuesta.body.code).toBe('CURSO_SIN_DESTINO');
+    });
+
+    it('sin "Publicar cursos" responde 403; en un curso ajeno, 404', async () => {
+      const { cookie } = await creador();
+      const propio = await http().post('/api/v1/cursos').set('Cookie', cookie).send(datosCurso()).expect(201);
+      await http().post(ruta(propio.body.id, 'publicar')).set('Cookie', cookie).expect(403);
+
+      const ajeno = await crearCurso(e2e.dataSource, { estado: 'PUBLICADO' });
+      const { sucursalA } = await crearDosSucursales(e2e.dataSource);
+      const publicador = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_PUBLICAR], sucursalIds: [sucursalA.id] });
+      const cookiePublicador = await iniciarSesion(e2e.app, publicador.username);
+      await http().post(ruta(ajeno.id, 'archivar')).set('Cookie', cookiePublicador).expect(404);
+    });
+
+    it('elimina un borrador con sus temas, materiales y portada; uno publicado no (RN-04.4)', async () => {
+      const { cookie } = await creador();
+      const curso = await http().post('/api/v1/cursos').set('Cookie', cookie).send(datosCurso()).expect(201);
+      const conPortada = await http()
+        .put(`/api/v1/cursos/${curso.body.id}/portada`)
+        .set('Cookie', cookie)
+        .attach('portada', await imagen(400, 300), 'portada.jpg')
+        .expect(200);
+      await http().post(`/api/v1/cursos/${curso.body.id}/temas`).set('Cookie', cookie).send({ titulo: 'Bienvenida' }).expect(201);
+
+      await http().delete(`/api/v1/cursos/${curso.body.id}`).set('Cookie', cookie).expect(204);
+      await http().get(`/api/v1/cursos/${curso.body.id}`).set('Cookie', cookie).expect(404);
+      await http().get(conPortada.body.portadaUrl).set('Cookie', cookie).expect(404);
+      const [{ total }] = await e2e.dataSource.query(`SELECT count(*)::int AS total FROM temas WHERE curso_id = $1`, [curso.body.id]);
+      expect(total).toBe(0);
+
+      const { id } = await cursoCompleto();
+      await http().post(ruta(id, 'publicar')).set('Cookie', superCookie).expect(200);
+      const publicado = await http().delete(`/api/v1/cursos/${id}`).set('Cookie', superCookie).expect(409);
+      expect(publicado.body.code).toBe('CURSO_NO_ES_BORRADOR');
+    });
+  });
 });

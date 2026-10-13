@@ -16,6 +16,9 @@ export interface Curso extends Auditoria {
   estado: EstadoCurso;
   publicadoEn: string | null;
   puedeEditar: boolean;
+  //publicar y reactivar
+  puedePublicar: boolean;
+  puedeArchivar: boolean;
 }
 
 export interface DatosCurso {

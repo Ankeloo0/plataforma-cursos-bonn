@@ -17,6 +17,8 @@ const curso = (datos: Partial<Curso> = {}): Curso => ({
   estado: 'BORRADOR',
   publicadoEn: null,
   puedeEditar: true,
+  puedePublicar: false,
+  puedeArchivar: false,
   creadoEn: '2026-10-07T20:00:00Z',
   creadoPor: 'jperez Juan Pérez',
   actualizadoEn: '2026-10-07T20:00:00.123Z',

@@ -79,9 +79,12 @@ export function PanelLayout() {
         >
           <Menu size={20} strokeWidth={1.75} aria-hidden="true" />
         </button>
-        <Link to={rutaInicio(usuario.rol)} className={styles.logoSuperior} aria-label="Grupo Bonn, ir al inicio">
-          <LogoPlataforma className={styles.logo} />
-        </Link>
+
+        <div>
+          <Link to={rutaInicio(usuario.rol)} className={styles.logoSuperior} aria-label="Grupo Bonn, ir al inicio">
+            <LogoPlataforma className={styles.logo} />
+          </Link>
+        </div>
         <MenuUsuario />
       </header>
 

@@ -19,6 +19,8 @@ const curso = (datos: Partial<Curso> = {}): Curso => ({
   estado: 'BORRADOR',
   publicadoEn: null,
   puedeEditar: true,
+  puedePublicar: false,
+  puedeArchivar: false,
   creadoEn: '2026-10-08T15:00:00Z',
   creadoPor: 'jperez Juan Pérez',
   actualizadoEn: '2026-10-08T15:00:00.123Z',
@@ -77,9 +79,14 @@ const temas = (): Tema[] => [
 ];
 
 function abrir() {
-  const router = createMemoryRouter([{ path: '/cursos/:id/editar', element: <EditorCursoPage /> }], {
-    initialEntries: ['/cursos/c1/editar'],
-  });
+  const router = createMemoryRouter(
+    [
+      { path: '/cursos/:id/editar', element: <EditorCursoPage /> },
+      { path: '/cursos/:id/vista-previa', element: <p>Pantalla de vista previa</p> },
+      { path: '/cursos', element: <p>Listado de cursos</p> },
+    ],
+    { initialEntries: ['/cursos/c1/editar'] },
+  );
   render(<RouterProvider router={router} />);
 }
 
@@ -300,5 +307,93 @@ describe('Editor de contenido del curso', () => {
 
     expect(await screen.findByText('Este curso cambió mientras lo editabas.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Recargar' })).toBeInTheDocument();
+  });
+
+  describe('ciclo de vida (HU-17)', () => {
+    const menuDelCurso = () => screen.getByRole('button', { name: 'Más acciones del curso' });
+
+    it('publica un borrador y vuelve a pedir el curso para mostrar su estado', async () => {
+      conSesion({ rol: 'SUPERUSUARIO' });
+      const obtener = vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso({ puedePublicar: true, puedeArchivar: true }));
+      vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+      const publicar = vi.spyOn(cursosService, 'publicar').mockResolvedValue(curso({ estado: 'PUBLICADO' }));
+      abrir();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Publicar' }));
+      expect(publicar).toHaveBeenCalledWith('c1');
+      await waitFor(() => expect(obtener).toHaveBeenCalledTimes(2));
+    });
+
+    it('si falta contenido muestra el motivo de la API', async () => {
+      conSesion({ rol: 'SUPERUSUARIO' });
+      vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso({ puedePublicar: true }));
+      vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+      vi.spyOn(cursosService, 'publicar').mockRejectedValue({
+        statusCode: 422,
+        code: 'CURSO_INCOMPLETO',
+        message: 'Cada tema visible necesita al menos un material visible. Revisa: "Equipo de protección".',
+      });
+      abrir();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Publicar' }));
+      expect(await screen.findByText(/Revisa: "Equipo de protección"/)).toBeInTheDocument();
+    });
+
+    it('sin permiso para publicar no ve el botón, pero sí la vista previa', async () => {
+      conSesion({ permisos: ['CURSOS_GESTIONAR', 'CURSOS_PUBLICAR'] });
+      vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso({ puedePublicar: false, puedeArchivar: true }));
+      vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+      abrir();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Vista previa' }));
+      expect(await screen.findByText('Pantalla de vista previa')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Publicar' })).not.toBeInTheDocument();
+    });
+
+    it('archiva un curso publicado después de confirmar', async () => {
+      conSesion({ rol: 'SUPERUSUARIO' });
+      vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso({ estado: 'PUBLICADO', puedePublicar: true, puedeArchivar: true }));
+      vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+      const archivar = vi.spyOn(cursosService, 'archivar').mockResolvedValue(curso({ estado: 'ARCHIVADO' }));
+      abrir();
+
+      await screen.findByText('Seguridad en el taller', { selector: 'h1' });
+      expect(screen.queryByRole('button', { name: 'Publicar' })).not.toBeInTheDocument();
+      fireEvent.click(menuDelCurso());
+      fireEvent.click(screen.getByRole('button', { name: 'Archivar curso' }));
+      const dialogo = screen.getByRole('dialog', { name: '¿Archivar el curso?' });
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Archivar curso' }));
+
+      await waitFor(() => expect(archivar).toHaveBeenCalledWith('c1'));
+    });
+
+    it('reactiva un curso archivado', async () => {
+      conSesion({ rol: 'SUPERUSUARIO' });
+      vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso({ estado: 'ARCHIVADO', puedePublicar: true, puedeArchivar: true }));
+      vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+      const reactivar = vi.spyOn(cursosService, 'reactivar').mockResolvedValue(curso({ estado: 'PUBLICADO' }));
+      abrir();
+
+      await screen.findByText('Seguridad en el taller', { selector: 'h1' });
+      fireEvent.click(menuDelCurso());
+      fireEvent.click(screen.getByRole('button', { name: 'Reactivar curso' }));
+      await waitFor(() => expect(reactivar).toHaveBeenCalledWith('c1'));
+    });
+
+    it('elimina un borrador después de confirmar y vuelve al listado', async () => {
+      conSesion({ permisos: ['CURSOS_GESTIONAR'] });
+      vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
+      vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+      const eliminar = vi.spyOn(cursosService, 'eliminar').mockResolvedValue();
+      abrir();
+
+      await screen.findByText('Seguridad en el taller', { selector: 'h1' });
+      fireEvent.click(menuDelCurso());
+      fireEvent.click(screen.getByRole('button', { name: 'Eliminar borrador' }));
+      fireEvent.click(within(screen.getByRole('dialog', { name: '¿Eliminar el borrador?' })).getByRole('button', { name: 'Eliminar borrador' }));
+
+      expect(await screen.findByText('Listado de cursos')).toBeInTheDocument();
+      expect(eliminar).toHaveBeenCalledWith('c1');
+    });
   });
 });

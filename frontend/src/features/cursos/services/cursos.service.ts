@@ -43,4 +43,23 @@ export const cursosService = {
     const { data } = await apiClient.delete<Curso>(`/cursos/${id}/portada`);
     return data;
   },
+
+  async publicar(id: string): Promise<Curso> {
+    const { data } = await apiClient.post<Curso>(`/cursos/${id}/publicar`);
+    return data;
+  },
+
+  async archivar(id: string): Promise<Curso> {
+    const { data } = await apiClient.post<Curso>(`/cursos/${id}/archivar`);
+    return data;
+  },
+
+  async reactivar(id: string): Promise<Curso> {
+    const { data } = await apiClient.post<Curso>(`/cursos/${id}/reactivar`);
+    return data;
+  },
+
+  async eliminar(id: string): Promise<void> {
+    await apiClient.delete(`/cursos/${id}`);
+  },
 };
