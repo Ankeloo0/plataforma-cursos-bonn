@@ -1,0 +1,196 @@
+/* temas en 320 px a la izquierda y el material al ancho disponible */
+.visor {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--esp-8);
+}
+
+.temas {
+  position: sticky;
+  top: calc(var(--alto-barra-superior) + var(--esp-4));
+  max-height: calc(100dvh - var(--alto-barra-superior) - var(--esp-8));
+  overflow-y: auto;
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md);
+  background: var(--fondo);
+}
+
+.tituloLista {
+  padding: var(--esp-4);
+  border-bottom: 1px solid var(--borde-suave);
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+/* sin los numeros del navegador: el numero del tema lo pone el componente */
+.lista,
+.materiales {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seccion + .seccion {
+  border-top: 1px solid var(--borde-suave);
+}
+
+.tema,
+.material {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-2);
+  width: 100%;
+  border: none;
+  border-radius: var(--radio-sm);
+  background: none;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.tema {
+  justify-content: space-between;
+  padding: var(--esp-3) var(--esp-4);
+  border-radius: 0;
+  background: var(--fondo-secundario);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.temaTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.temaCuenta {
+  font-size: var(--texto-xs);
+  font-weight: 400;
+  color: var(--texto-terciario);
+}
+
+.flecha {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--texto-secundario);
+  transition: transform var(--dur-media) var(--curva-salida);
+}
+
+.tema[aria-expanded='true'] .flecha {
+  transform: rotate(180deg);
+}
+
+.tema:hover,
+.material:hover {
+  background: var(--gris-100);
+}
+
+.tema[aria-current] {
+  color: var(--color-marca);
+}
+
+.material[aria-current] {
+  background: var(--color-marca-tinte);
+  color: var(--color-marca);
+}
+
+.tema:focus-visible,
+.material:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: -2px;
+}
+
+.materiales {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--esp-2);
+}
+
+.material {
+  padding: var(--esp-2) var(--esp-3);
+  font-size: var(--texto-sm);
+  line-height: 1.4;
+  color: var(--texto-secundario);
+}
+
+.material svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-4);
+  min-width: 0;
+}
+
+.tituloTema {
+  font-size: var(--texto-sm);
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+.tituloMaterial {
+  font-size: var(--texto-2xl);
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.detalle {
+  font-size: var(--texto-sm);
+  color: var(--texto-terciario);
+}
+
+.descripcion {
+  max-width: var(--ancho-lectura);
+  color: var(--texto-secundario);
+  line-height: 1.6;
+}
+
+.sinMateriales {
+  padding: var(--esp-8) var(--esp-6);
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio-md);
+  color: var(--texto-secundario);
+  text-align: center;
+}
+
+.navegacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-3);
+  margin-top: var(--esp-4);
+  padding-top: var(--esp-4);
+  border-top: 1px solid var(--borde-suave);
+}
+
+.siguiente {
+  margin-left: auto;
+}
+
+.siguiente span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
+/* en celular y tableta la lista de temas queda arriba del material */
+@media (max-width: 1023px) {
+  .visor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-6);
+  }
+
+  .temas {
+    position: static;
+    max-height: none;
+  }
+}

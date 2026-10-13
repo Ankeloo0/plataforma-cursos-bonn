@@ -2,6 +2,12 @@ import { urlArchivo } from '../../archivos/archivos.service.js';
 import type { CursoDetalle } from '../cursos.repository.js';
 import type { EstadoCurso } from '../entities/curso.entity.js';
 
+export interface AccionesCurso {
+  puedeEditar: boolean;
+  puedePublicar: boolean;
+  puedeArchivar: boolean;
+}
+
 export class CursoResponseDto {
   id: string;
   titulo: string;
@@ -17,13 +23,16 @@ export class CursoResponseDto {
   publicadoEn: string | null;
   // Si quien consulta puede editarlo: la interfaz muestra o no la accion Editar (V-10)
   puedeEditar: boolean;
+  //publicar y reactivar
+  puedePublicar: boolean;
+  puedeArchivar: boolean;
   // Quien lo creo y quien lo modifico por ultima vez (RF-04.10). actualizadoEn tambien sirve para V-13.
   creadoEn: string;
   creadoPor: string | null;
   actualizadoEn: string;
   actualizadoPor: string | null;
 
-  static desde({ curso, creadoPorNombre, actualizadoPorNombre }: CursoDetalle, puedeEditar: boolean): CursoResponseDto {
+  static desde({ curso, creadoPorNombre, actualizadoPorNombre }: CursoDetalle, acciones: AccionesCurso): CursoResponseDto {
     return {
       id: curso.id,
       titulo: curso.titulo,
@@ -35,7 +44,7 @@ export class CursoResponseDto {
       calificacionMinima: Number(curso.calificacionMinima),
       estado: curso.estado,
       publicadoEn: curso.publicadoEn?.toISOString() ?? null,
-      puedeEditar,
+      ...acciones,
       creadoEn: curso.creadoEn.toISOString(),
       creadoPor: creadoPorNombre,
       actualizadoEn: curso.actualizadoEn.toISOString(),

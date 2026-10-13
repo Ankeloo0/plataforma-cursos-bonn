@@ -20,6 +20,13 @@
   text-wrap: balance;
 }
 
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+}
+
 .resumen {
   display: flex;
   flex-wrap: wrap;

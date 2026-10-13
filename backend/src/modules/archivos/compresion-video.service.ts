@@ -73,12 +73,12 @@ export class CompresionVideoService implements OnApplicationBootstrap, OnModuleD
     }
   }
 
-  // Si falla, el original se queda y se puede ver; el editor muestra "Error"
+  //si falla, el original se queda y se puede ver; el editor muestra "Error"
   private async comprimir(archivoId: string): Promise<void> {
     const archivo = await this.archivosRepository.buscarPorId(archivoId);
     if (!archivo || archivo.estado !== ESTADOS_ARCHIVO.PROCESANDO) return;
 
-    // En tmp/, dentro del storage: al terminar se mueve sin copiarlo
+    //en tmp/, dentro del storage: al terminar se mueve sin copiarlo
     const salida = path.join(this.almacenamiento.carpetaTemporal, `${randomUUID()}.mp4`);
     try {
       await mkdir(this.almacenamiento.carpetaTemporal, { recursive: true });
@@ -88,7 +88,7 @@ export class CompresionVideoService implements OnApplicationBootstrap, OnModuleD
       });
 
       const { size } = await stat(salida);
-      // Un video que ya era ligero puede crecer al recomprimirlo: entonces se queda el original
+      //un video que ya era ligero puede crecer al recomprimirlo: entonces se queda el original
       if (size >= Number(archivo.tamanoBytes)) {
         await this.archivosRepository.cambiarEstado(archivo.id, ESTADOS_ARCHIVO.LISTO);
         return;
@@ -99,7 +99,7 @@ export class CompresionVideoService implements OnApplicationBootstrap, OnModuleD
       const guardado = await this.archivosRepository.guardarComprimido(archivo.id, storageKey, size);
       await this.almacenamiento.eliminar(guardado ? archivo.storageKey : storageKey);
     } catch (error) {
-      // Al apagar la API se queda PROCESANDO y se retoma al volver a iniciar
+      //al apagar la api se queda PROCESANDO y se retoma al volver a iniciar
       if (this.detener.signal.aborted) return;
       this.logger.error(`No se pudo comprimir ${archivo.storageKey}: ${String(error)}`);
       await this.archivosRepository.cambiarEstado(archivo.id, ESTADOS_ARCHIVO.ERROR);

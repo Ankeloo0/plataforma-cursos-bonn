@@ -1,0 +1,158 @@
+/* pantalla completa, sin el menu del panel, para que el curso tenga todo el ancho */
+.pantalla {
+  min-height: 100dvh;
+  background: var(--fondo);
+}
+
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-4);
+  height: var(--alto-barra-superior);
+  padding: 0 var(--esp-8);
+  border-bottom: 1px solid var(--borde-suave);
+  background: var(--fondo);
+}
+
+.volver {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-3) var(--esp-2) var(--esp-2);
+  border-radius: var(--radio-sm);
+  color: var(--color-marca);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--dur-rapida) var(--curva-salida);
+}
+
+.volver:hover {
+  background: var(--color-marca-tinte);
+}
+
+.volver:focus-visible {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 2px;
+}
+
+.nombreCurso {
+  flex: 1;
+  min-width: 0;
+  padding-left: var(--esp-4);
+  border-left: 1px solid var(--borde-suave);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.etiqueta {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.contenido {
+  width: 100%;
+  max-width: calc(var(--ancho-contenido) + 2 * var(--esp-8));
+  margin: 0 auto;
+  padding: var(--esp-8) var(--esp-8) var(--esp-16);
+}
+
+.aviso {
+  margin-bottom: var(--esp-6);
+}
+
+.enlaceEditor {
+  color: var(--color-marca);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  max-width: 880px;
+  margin-bottom: var(--esp-8);
+}
+
+.titulo {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2) var(--esp-4);
+}
+
+.dato {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-1);
+  font-size: var(--texto-sm);
+  color: var(--texto-secundario);
+}
+
+.descripcion {
+  max-width: var(--ancho-lectura);
+  color: var(--texto-secundario);
+  line-height: 1.6;
+}
+
+.cargandoEncabezado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-8);
+}
+
+.cargandoVisor {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--esp-8);
+}
+
+@media (max-width: 1023px) {
+  .cargandoVisor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .barra {
+    padding: 0 var(--esp-6);
+  }
+
+  .contenido {
+    padding: var(--esp-6) var(--esp-6) var(--esp-12);
+  }
+}
+
+@media (max-width: 639px) {
+  .barra {
+    gap: var(--esp-2);
+    padding: 0 var(--esp-4);
+  }
+
+  .nombreCurso {
+    padding-left: var(--esp-2);
+  }
+
+  .etiqueta {
+    display: none;
+  }
+
+  .contenido {
+    padding: var(--esp-5) var(--esp-4) var(--esp-12);
+  }
+}

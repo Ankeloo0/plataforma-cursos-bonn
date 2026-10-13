@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PERMISOS } from '../../common/constants/permisos.js';
+import { PERMISOS, type Permiso } from '../../common/constants/permisos.js';
 import { ROLES } from '../../common/constants/roles.js';
 import type { UsuarioSesion } from '../../common/interfaces/usuario-sesion.interface.js';
 import type { Curso } from './entities/curso.entity.js';
@@ -20,7 +20,21 @@ export class CursosAccesoService {
 
   // Ademas de ver el curso, el administrador necesita "Gestionar cursos"
   puedeEditar(curso: Pick<Curso, 'creadoPor'>, actor: UsuarioSesion): boolean {
+    return this.leToca(curso, actor, PERMISOS.CURSOS_GESTIONAR);
+  }
+
+  //publicar y reactivar: el administrador ademas necesita un destino de sus sucursales,
+  //y los cursos todavia no tienen destinos, asi que por ahora solo el superusuario
+  puedePublicar(_curso: Pick<Curso, 'creadoPor'>, actor: UsuarioSesion): boolean {
+    return actor.rol === ROLES.SUPERUSUARIO;
+  }
+
+  puedeArchivar(curso: Pick<Curso, 'creadoPor'>, actor: UsuarioSesion): boolean {
+    return this.leToca(curso, actor, PERMISOS.CURSOS_PUBLICAR);
+  }
+
+  private leToca(curso: Pick<Curso, 'creadoPor'>, actor: UsuarioSesion, permiso: Permiso): boolean {
     if (actor.rol === ROLES.SUPERUSUARIO) return true;
-    return curso.creadoPor === actor.id && actor.permisos.includes(PERMISOS.CURSOS_GESTIONAR);
+    return curso.creadoPor === actor.id && actor.permisos.includes(permiso);
   }
 }

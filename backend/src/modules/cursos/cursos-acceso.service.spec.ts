@@ -24,4 +24,16 @@ describe('CursosAccesoService (V-10, V-12 antes de los destinos)', () => {
     expect(acceso.puedeEditar({ creadoPor: 'a1' }, admin(['CURSOS_ASIGNAR']))).toBe(false);
     expect(acceso.puedeEditar({ creadoPor: 'otro' }, admin(['CURSOS_GESTIONAR']))).toBe(false);
   });
+
+  it('publicar: por ahora solo el superusuario, porque el administrador necesita un destino (V-11)', () => {
+    expect(acceso.puedePublicar({ creadoPor: 'otro' }, superusuario)).toBe(true);
+    expect(acceso.puedePublicar({ creadoPor: 'a1' }, admin(['CURSOS_PUBLICAR']))).toBe(false);
+  });
+
+  it('archivar: el creador con "Publicar cursos"', () => {
+    expect(acceso.puedeArchivar({ creadoPor: 'otro' }, superusuario)).toBe(true);
+    expect(acceso.puedeArchivar({ creadoPor: 'a1' }, admin(['CURSOS_PUBLICAR']))).toBe(true);
+    expect(acceso.puedeArchivar({ creadoPor: 'a1' }, admin(['CURSOS_GESTIONAR']))).toBe(false);
+    expect(acceso.puedeArchivar({ creadoPor: 'otro' }, admin(['CURSOS_PUBLICAR']))).toBe(false);
+  });
 });

@@ -45,9 +45,9 @@
 .logo {
   display: block;
   align-self: flex-start;
-  width: auto;
-  height: 40px;
-  margin: 0 var(--esp-3);
+  width: 140px;
+  height: 70px;
+  margin: 0 auto
 }
 
 .lateral .logo {

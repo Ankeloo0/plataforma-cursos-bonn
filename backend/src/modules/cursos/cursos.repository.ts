@@ -4,7 +4,7 @@ import type { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
 import { patronBusqueda } from '../../common/utils/busqueda.js';
 import type { QueryCursosDto } from './dto/curso.dto.js';
-import { Curso } from './entities/curso.entity.js';
+import { Curso, ESTADOS_CURSO, type EstadoCurso } from './entities/curso.entity.js';
 
 export interface CursoDetalle {
   curso: Curso;
@@ -61,6 +61,52 @@ export class CursosRepository {
 
   guardar(curso: Curso): Promise<Curso> {
     return this.repo.save(curso);
+  }
+
+  //solo cambia si sigue en el estado esperado; false si alguien lo cambio antes
+  async cambiarEstado(id: string, desde: EstadoCurso, hacia: EstadoCurso, actorId: string): Promise<boolean> {
+    const resultado = await this.repo
+      .createQueryBuilder()
+      .update(Curso)
+      .set({
+        estado: hacia,
+        actualizadoPor: actorId,
+        ...(desde === ESTADOS_CURSO.BORRADOR && { publicadoEn: () => 'now()' }),
+      })
+      .where('id = :id AND estado = :desde', { id, desde })
+      .execute();
+    return resultado.affected === 1;
+  }
+
+  async contarTemasVisibles(id: string): Promise<number> {
+    const [fila] = await this.repo.query(`SELECT count(*)::int AS total FROM temas WHERE curso_id = $1 AND activo`, [id]);
+    return fila.total;
+  }
+
+  async temasVisiblesSinMateriales(id: string): Promise<string[]> {
+    const filas: { titulo: string }[] = await this.repo.query(
+      `SELECT t.titulo FROM temas t
+       WHERE t.curso_id = $1 AND t.activo
+         AND NOT EXISTS (SELECT 1 FROM materiales m WHERE m.tema_id = t.id AND m.activo)
+       ORDER BY t.orden`,
+      [id],
+    );
+    return filas.map((f) => f.titulo);
+  }
+
+  async archivosDeMateriales(id: string): Promise<string[]> {
+    const filas: { archivo_id: string }[] = await this.repo.query(
+      `SELECT m.archivo_id FROM materiales m JOIN temas t ON t.id = m.tema_id
+       WHERE t.curso_id = $1 AND m.archivo_id IS NOT NULL`,
+      [id],
+    );
+    return filas.map((f) => f.archivo_id);
+  }
+
+  //temas y materiales se borran en cascada; false si ya no es borrador
+  async eliminarBorrador(id: string): Promise<boolean> {
+    const resultado = await this.repo.delete({ id, estado: ESTADOS_CURSO.BORRADOR });
+    return resultado.affected === 1;
   }
 
   // D-36: suma de los materiales activos de los temas activos, en horas. Se llama en la misma transaccion

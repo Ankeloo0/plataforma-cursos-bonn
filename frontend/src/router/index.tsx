@@ -8,6 +8,7 @@ import { EmpresasPage } from '../features/empresas/pages/EmpresasPage';
 import { CatalogoPage } from '../features/catalogo/pages/CatalogoPage';
 import { CursosPage } from '../features/cursos/pages/CursosPage';
 import { EditorCursoPage } from '../features/cursos/pages/EditorCursoPage';
+import { VistaPreviaCursoPage } from '../features/cursos/pages/VistaPreviaCursoPage';
 import { EmpleadoPage } from '../features/empleados/pages/EmpleadoPage';
 import { EmpleadosPage } from '../features/empleados/pages/EmpleadosPage';
 import { InicioEmpleadoPage } from '../features/inicio/pages/InicioEmpleadoPage';
@@ -72,6 +73,11 @@ const rutas: RouteObject[] = [
                 children: [{ path: '/panel', element: <InicioPanel /> }],
               },
             ],
+          },
+          {
+            //fuera del panel: el curso ocupa toda la pantalla, sin barra lateral
+            element: <RoleRoute roles={['SUPERUSUARIO', 'ADMIN']} permisos={['CURSOS_GESTIONAR', 'CURSOS_PUBLICAR', 'CURSOS_ASIGNAR']} />,
+            children: [{ path: '/cursos/:id/vista-previa', element: <VistaPreviaCursoPage /> }],
           },
         ],
       },

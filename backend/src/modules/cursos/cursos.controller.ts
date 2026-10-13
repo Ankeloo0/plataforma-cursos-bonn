@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -26,7 +28,7 @@ import { CursosService } from './cursos.service.js';
 import { ActualizarCursoDto, CrearCursoDto, QueryCursosDto } from './dto/curso.dto.js';
 import type { CursoResponseDto } from './dto/curso-response.dto.js';
 
-// Publicar, archivar, reactivar y eliminar un borrador llegan en I3.5; temas y materiales estan en sus controladores
+//temas y materiales estan en sus controladores
 @ApiTags('Cursos')
 @Roles(ROLES.SUPERUSUARIO, ROLES.ADMIN)
 @Controller('cursos')
@@ -93,5 +95,51 @@ export class CursosController {
   @Delete(':id/portada')
   quitarPortada(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() actor: UsuarioSesion): Promise<CursoResponseDto> {
     return this.cursosService.quitarPortada(id, actor);
+  }
+
+  @ApiOperation({
+    summary: 'Publicar un curso',
+    description:
+      'Solo desde borrador. Exige al menos un tema visible y un material visible en cada tema visible (422 CURSO_INCOMPLETO, RN-04.2; la evaluación final se exige en I5). ' +
+      'Un administrador necesita un destino de sus sucursales (422 CURSO_SIN_DESTINO, V-11); mientras no existan los destinos (I4), solo publica el superusuario.',
+  })
+  @RequierePermiso(PERMISOS.CURSOS_PUBLICAR)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/publicar')
+  publicar(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() actor: UsuarioSesion): Promise<CursoResponseDto> {
+    return this.cursosService.publicar(id, actor);
+  }
+
+  @ApiOperation({
+    summary: 'Archivar un curso',
+    description: 'Solo un curso publicado (409 CURSO_ESTADO_INVALIDO). Deja de estar pendiente; los certificados se conservan (RN-04.6).',
+  })
+  @RequierePermiso(PERMISOS.CURSOS_PUBLICAR)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/archivar')
+  archivar(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() actor: UsuarioSesion): Promise<CursoResponseDto> {
+    return this.cursosService.archivar(id, actor);
+  }
+
+  @ApiOperation({
+    summary: 'Reactivar un curso',
+    description: 'Solo un curso archivado. Vuelve a publicado con las mismas validaciones de publicar (RF-04.7).',
+  })
+  @RequierePermiso(PERMISOS.CURSOS_PUBLICAR)
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/reactivar')
+  reactivar(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() actor: UsuarioSesion): Promise<CursoResponseDto> {
+    return this.cursosService.reactivar(id, actor);
+  }
+
+  @ApiOperation({
+    summary: 'Eliminar un borrador',
+    description: 'Con sus temas, materiales, archivos y portada. Uno publicado o archivado responde 409 CURSO_NO_ES_BORRADOR (RN-04.4).',
+  })
+  @RequierePermiso(PERMISOS.CURSOS_GESTIONAR)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete(':id')
+  eliminar(@Param('id', ParseUUIDPipe) id: string, @UsuarioActual() actor: UsuarioSesion): Promise<void> {
+    return this.cursosService.eliminar(id, actor);
   }
 }
