@@ -251,7 +251,15 @@ export function AdministradoresPage() {
                         <Link to={`/administradores/${admin.id}`}>
                           <strong>{nombreAdministrador(admin)}</strong>
                         </Link>
-                        <span className={styles.usuarioSecundario}>{admin.username}</span>
+                        <span className={styles.usuarioSecundario}>
+                          {admin.numeroEmpleado ? (
+                            <>
+                              <span className="cifras-tabulares">No. {admin.numeroEmpleado}</span> · {admin.empresa?.nombre}
+                            </>
+                          ) : (
+                            'Sin número de empleado'
+                          )}
+                        </span>
                       </div>
                     </div>
                   </td>

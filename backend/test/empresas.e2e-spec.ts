@@ -12,7 +12,7 @@ import {
   crearSucursal,
   obtenerSuperusuario,
 } from './e2e/fabricas.js';
-import { iniciarSesion, iniciarSesionEmpleado } from './e2e/sesion.js';
+import { iniciarSesion } from './e2e/sesion.js';
 
 describe('Empresas y sucursales (HU-04, HU-46)', () => {
   let e2e: AppE2e;
@@ -26,7 +26,7 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
     const superusuario = await obtenerSuperusuario(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, superusuario.username);
+    superCookie = await iniciarSesion(e2e.app, superusuario);
   });
 
   afterAll(async () => {
@@ -88,8 +88,9 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
       const comodin = await http().get('/api/v1/empresas?search=%25').set('Cookie', superCookie).expect(200);
       expect(comodin.body.data.map((e: { nombre: string }) => e.nombre)).toEqual(['Otra 100%']);
 
+      //mas la empresa del superusuario
       const pagina = await http().get('/api/v1/empresas?limit=2&page=2').set('Cookie', superCookie).expect(200);
-      expect(pagina.body.meta).toEqual({ page: 2, limit: 2, total: 3, totalPages: 2 });
+      expect(pagina.body.meta).toEqual({ page: 2, limit: 2, total: 4, totalPages: 2 });
     });
 
     it('cuenta sus sucursales activas, sus administradores y sus empleados (RF-00.4)', async () => {
@@ -118,7 +119,7 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
 
     it('al desactivarla, sus sucursales salen del alcance de los administradores (RN-00.3)', async () => {
       const { empresaA, adminA } = await crearDosSucursales(e2e.dataSource);
-      const cookieAdmin = await iniciarSesion(e2e.app, adminA.username);
+      const cookieAdmin = await iniciarSesion(e2e.app, adminA);
 
       await http().post(`/api/v1/empresas/${empresaA.id}/desactivar`).set('Cookie', superCookie).expect(200);
 
@@ -129,15 +130,21 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
     it('al desactivar la empresa, sus empleados no entran y se cierran sus sesiones (RN-00.3)', async () => {
       const { empresaA, sucursalA } = await crearDosSucursales(e2e.dataSource);
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-      const cookieEmpleado = await iniciarSesionEmpleado(e2e.app, empleado);
+      const cookieEmpleado = await iniciarSesion(e2e.app, empleado);
 
       await http().post(`/api/v1/empresas/${empresaA.id}/desactivar`).set('Cookie', superCookie).expect(200);
 
       await http().get('/api/v1/perfil').set('Cookie', cookieEmpleado).expect(401);
       await http()
-        .post('/api/v1/auth/login-empleado')
+        .post('/api/v1/auth/login')
         .send({ empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado, password: PASSWORD_PRUEBA })
         .expect(401);
+    });
+
+    it('no deja desactivar la empresa del superusuario, para no quedarse sin acceso', async () => {
+      const superusuario = await obtenerSuperusuario(e2e.dataSource);
+      const respuesta = await http().post(`/api/v1/empresas/${superusuario.empresaId}/desactivar`).set('Cookie', superCookie).expect(409);
+      expect(respuesta.body.code).toBe('EMPRESA_DEL_SUPERUSUARIO');
     });
 
     it('responde 404 para una empresa que no existe, 400 para un id inválido y rechaza campos como creadoPor', async () => {
@@ -219,20 +226,20 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
     it('al desactivar una sucursal, sus empleados no entran y se cierran sus sesiones (RN-00.8)', async () => {
       const { sucursalA } = await crearDosSucursales(e2e.dataSource);
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-      const cookieEmpleado = await iniciarSesionEmpleado(e2e.app, empleado);
+      const cookieEmpleado = await iniciarSesion(e2e.app, empleado);
 
       await http().post(`/api/v1/sucursales/${sucursalA.id}/desactivar`).set('Cookie', superCookie).expect(200);
 
       await http().get('/api/v1/perfil').set('Cookie', cookieEmpleado).expect(401);
       await http()
-        .post('/api/v1/auth/login-empleado')
+        .post('/api/v1/auth/login')
         .send({ empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado, password: PASSWORD_PRUEBA })
         .expect(401);
     });
 
     it('el selector de sucursales: el superusuario ve todas; cada administrador, solo las suyas', async () => {
       const { sucursalA, sucursalB, adminA } = await crearDosSucursales(e2e.dataSource);
-      const cookieA = await iniciarSesion(e2e.app, adminA.username);
+      const cookieA = await iniciarSesion(e2e.app, adminA);
 
       const todas = await http().get('/api/v1/sucursales').set('Cookie', superCookie).expect(200);
       expect(todas.body.map((s: { id: string }) => s.id).sort()).toEqual([sucursalA.id, sucursalB.id].sort());
@@ -243,7 +250,7 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
 
     it('un administrador no crea, edita ni consulta sucursales, aunque tenga todos los permisos', async () => {
       const { empresaA, sucursalA, adminA, marca } = await crearDosSucursales(e2e.dataSource);
-      const cookieA = await iniciarSesion(e2e.app, adminA.username);
+      const cookieA = await iniciarSesion(e2e.app, adminA);
 
       await http().post(`/api/v1/empresas/${empresaA.id}/sucursales`).set('Cookie', cookieA).send({ nombre: 'X', marcaId: marca.id }).expect(403);
       await http().patch(`/api/v1/sucursales/${sucursalA.id}`).set('Cookie', cookieA).send({ nombre: 'X' }).expect(403);
@@ -252,11 +259,11 @@ describe('Empresas y sucursales (HU-04, HU-46)', () => {
 
     it('un administrador sin ningún permiso no usa el selector de sucursales', async () => {
       const admin = await crearAdministrador(e2e.dataSource);
-      const cookie = await iniciarSesion(e2e.app, admin.username);
+      const cookie = await iniciarSesion(e2e.app, admin);
       await http().get('/api/v1/sucursales').set('Cookie', cookie).expect(403);
 
       const conPermiso = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.REPORTES_VER] });
-      const cookieConPermiso = await iniciarSesion(e2e.app, conPermiso.username);
+      const cookieConPermiso = await iniciarSesion(e2e.app, conPermiso);
       const vacio = await http().get('/api/v1/sucursales').set('Cookie', cookieConPermiso).expect(200);
       expect(vacio.body).toEqual([]);
     });

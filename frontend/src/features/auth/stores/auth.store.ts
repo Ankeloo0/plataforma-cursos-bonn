@@ -10,8 +10,7 @@ interface AuthState {
   usuario: Perfil | null;
   estado: EstadoSesion;
   verificarSesion: () => Promise<void>;
-  iniciarSesion: (username: string, password: string) => Promise<Perfil>;
-  iniciarSesionEmpleado: (empresaId: string, numeroEmpleado: string, password: string) => Promise<Perfil>;
+  iniciarSesion: (empresaId: string, numeroEmpleado: string, password: string) => Promise<Perfil>;
   cambiarPassword: (passwordActual: string, passwordNueva: string) => Promise<Perfil>;
   cerrarSesion: () => Promise<void>;
   actualizarUsuario: (usuario: Perfil) => void;
@@ -31,14 +30,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  async iniciarSesion(username, password) {
-    const usuario = await authService.iniciarSesion(username, password);
-    set({ usuario, estado: 'con-sesion' });
-    return usuario;
-  },
-
-  async iniciarSesionEmpleado(empresaId, numeroEmpleado, password) {
-    const usuario = await authService.iniciarSesionEmpleado(empresaId, numeroEmpleado, password);
+  async iniciarSesion(empresaId, numeroEmpleado, password) {
+    const usuario = await authService.iniciarSesion(empresaId, numeroEmpleado, password);
     set({ usuario, estado: 'con-sesion' });
     return usuario;
   },

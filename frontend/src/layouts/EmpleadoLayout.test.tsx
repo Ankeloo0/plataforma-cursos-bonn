@@ -8,10 +8,11 @@ import { EmpleadoLayout } from './EmpleadoLayout';
 const empleado = {
   rol: 'EMPLEADO' as const,
   nombres: 'Ana',
-  username: null,
+  numeroEmpleado: '1024',
+  empresa: { id: 'g1', nombre: 'Grupo Bonn' },
   sucursales: [],
   sucursal: { id: 's1', nombre: 'VW Bonn Oaxaca', empresa: { id: 'g1', nombre: 'Grupo Bonn' }, marca: { id: 'm1', nombre: 'Volkswagen' } },
-  empleado: { numeroEmpleado: '1024', fechaIngreso: '2026-03-01', puesto: { id: 'p1', nombre: 'Asesor de servicio' }, area: { id: 'a1', nombre: 'Servicio' } },
+  empleado: { fechaIngreso: '2026-03-01', puesto: { id: 'p1', nombre: 'Asesor de servicio' }, area: { id: 'a1', nombre: 'Servicio' } },
 };
 
 function abrir(ruta: string) {

@@ -7,10 +7,6 @@ export const MENSAJES_RESTRICCIONES: Record<string, { code: string; message: str
     code: 'EMPRESA_NOMBRE_DUPLICADO',
     message: 'Ya existe una empresa con ese nombre.',
   },
-  uq_usuarios_username_ci: {
-    code: 'USUARIO_USERNAME_DUPLICADO',
-    message: 'Ese nombre de usuario ya está en uso. Elige otro.',
-  },
   uq_usuarios_un_superusuario: {
     code: 'SUPERUSUARIO_UNICO',
     message: 'Solo puede existir un superusuario.',
@@ -39,7 +35,15 @@ export const MENSAJES_RESTRICCIONES: Record<string, { code: string; message: str
     code: 'PUESTO_NOMBRE_DUPLICADO',
     message: 'Esta área ya tiene un puesto con ese nombre.',
   },
-  uq_empleados_empresa_numero_ci: {
+
+  // Migracion 7: imagenes de las paginas
+  uq_materiales_imagenes_archivo: {
+    code: 'ARCHIVO_EN_USO',
+    message: 'Una de las imágenes ya se usa en otra página. Súbela de nuevo.',
+  },
+
+  // Migracion 6: numero de empleado en usuarios
+  uq_usuarios_empresa_numero_ci: {
     code: 'EMPLEADO_NUMERO_DUPLICADO',
     message: 'Ese número de empleado ya existe en la empresa. Revisa el número.',
   },

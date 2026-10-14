@@ -15,9 +15,13 @@ export class Usuario extends ColumnasAuditoria {
   @Column({ name: 'sucursal_id', type: 'uuid', nullable: true })
   sucursalId: string | null;
 
-  // Solo administrador y superusuario; el empleado entra con su empresa y su numero de empleado (D-34)
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  username: string | null;
+  //todos entran con empresa y numero; en el empleado es la empresa de su sucursal
+  @Column({ name: 'empresa_id', type: 'uuid', nullable: true })
+  empresaId: string | null;
+
+  //unico dentro de la empresa; null solo en administradores y superusuario que aun no lo tienen
+  @Column({ name: 'numero_empleado', type: 'varchar', length: 20, nullable: true })
+  numeroEmpleado: string | null;
 
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })
   passwordHash: string;

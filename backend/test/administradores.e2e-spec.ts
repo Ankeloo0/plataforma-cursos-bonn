@@ -6,22 +6,25 @@ import {
   crearAdministrador,
   crearDosSucursales,
   crearEmpleado,
+  crearEmpresa,
   crearSucursal,
   obtenerSuperusuario,
 } from './e2e/fabricas.js';
 import { cookieDe, iniciarSesion } from './e2e/sesion.js';
 
+//empresaId se completa en cada prueba con la empresa del superusuario
 const NUEVO_ADMIN = {
   nombres: 'Juan',
   apellidoPaterno: 'Pérez',
   apellidoMaterno: '',
-  username: 'jperez',
+  numeroEmpleado: 'A-500',
   passwordTemporal: 'Temporal2026',
 };
 
 describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
   let e2e: AppE2e;
   let superCookie: string;
+  let nuevoAdmin: typeof NUEVO_ADMIN & { empresaId: string };
   const http = () => request(e2e.app.getHttpServer());
 
   beforeAll(async () => {
@@ -30,7 +33,9 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
 
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)).username);
+    const superusuario = await obtenerSuperusuario(e2e.dataSource);
+    superCookie = await iniciarSesion(e2e.app, superusuario);
+    nuevoAdmin = { ...NUEVO_ADMIN, empresaId: superusuario.empresaId };
   });
 
   afterAll(async () => {
@@ -41,14 +46,21 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
   it('recorrido de la demo: alta sin permisos, se le asignan permisos y sucursales, y entra a ver solo lo suyo (HU-00)', async () => {
     const { sucursalA } = await crearDosSucursales(e2e.dataSource);
 
-    const creado = await http().post('/api/v1/administradores').set('Cookie', superCookie).send(NUEVO_ADMIN).expect(201);
-    expect(creado.body).toMatchObject({ rol: 'ADMIN', username: 'jperez', sucursalId: null, apellidoMaterno: null, debeCambiarPassword: true });
+    const creado = await http().post('/api/v1/administradores').set('Cookie', superCookie).send(nuevoAdmin).expect(201);
+    expect(creado.body).toMatchObject({
+      rol: 'ADMIN',
+      empresaId: nuevoAdmin.empresaId,
+      numeroEmpleado: 'A-500',
+      sucursalId: null,
+      apellidoMaterno: null,
+      debeCambiarPassword: true,
+    });
     expect(JSON.stringify(creado.body)).not.toMatch(/password_hash|passwordHash|Temporal2026/);
 
     const ficha = await http().get(`/api/v1/administradores/${creado.body.id}`).set('Cookie', superCookie).expect(200);
     expect(ficha.body).toMatchObject({ permisos: [], sucursales: [] });
 
-    const temporal = await iniciarSesion(e2e.app, 'jperez', 'Temporal2026');
+    const temporal = await iniciarSesion(e2e.app, nuevoAdmin, 'Temporal2026');
     const cambio = await http()
       .post('/api/v1/auth/cambiar-password')
       .set('Cookie', temporal)
@@ -119,14 +131,58 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
     expect(inexistente.body.code).toBe('SUCURSAL_NO_ENCONTRADA');
   });
 
-  it('el usuario es único en toda la plataforma (RN-01.1)', async () => {
-    await crearAdministrador(e2e.dataSource, { username: 'jperez' });
+  it('el número es único dentro de la empresa, también frente a empleados (RN-01.1)', async () => {
+    const { sucursalA } = await crearDosSucursales(e2e.dataSource);
+    await crearAdministrador(e2e.dataSource, { numeroEmpleado: 'A-500' });
+    const repetido = await http()
+      .post('/api/v1/administradores')
+      .set('Cookie', superCookie)
+      .send({ ...nuevoAdmin, numeroEmpleado: 'a-500' })
+      .expect(409);
+    expect(repetido.body.code).toBe('EMPLEADO_NUMERO_DUPLICADO');
+
+    const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id, numeroEmpleado: 'E-7' });
+    await http()
+      .post('/api/v1/administradores')
+      .set('Cookie', superCookie)
+      .send({ ...nuevoAdmin, empresaId: empleado.empresaId, numeroEmpleado: 'E-7' })
+      .expect(409);
+  });
+
+  it('pide una empresa activa y un número válido', async () => {
+    const inactiva = await crearEmpresa(e2e.dataSource, { activo: false });
     const respuesta = await http()
       .post('/api/v1/administradores')
       .set('Cookie', superCookie)
-      .send({ ...NUEVO_ADMIN, username: 'JPEREZ' })
-      .expect(409);
-    expect(respuesta.body.code).toBe('USUARIO_USERNAME_DUPLICADO');
+      .send({ ...nuevoAdmin, empresaId: inactiva.id })
+      .expect(422);
+    expect(respuesta.body.code).toBe('EMPRESA_INACTIVA');
+    await http().post('/api/v1/administradores').set('Cookie', superCookie).send({ ...nuevoAdmin, empresaId: undefined }).expect(400);
+    await http()
+      .post('/api/v1/administradores')
+      .set('Cookie', superCookie)
+      .send({ ...nuevoAdmin, numeroEmpleado: 'con espacios' })
+      .expect(400);
+  });
+
+  it('a un administrador sin número (anterior a los números) se le asignan empresa y número juntos, y entonces entra', async () => {
+    const admin = await crearAdministrador(e2e.dataSource);
+    await e2e.dataSource.query(`UPDATE usuarios SET empresa_id = NULL, numero_empleado = NULL WHERE id = $1`, [admin.id]);
+
+    const soloNumero = await http().patch(`/api/v1/administradores/${admin.id}`).set('Cookie', superCookie).send({ numeroEmpleado: 'B-1' }).expect(422);
+    expect(soloNumero.body.code).toBe('NUMERO_SIN_EMPRESA');
+
+    const empresa = await crearEmpresa(e2e.dataSource, { nombre: 'Grupo Sur' });
+    const editado = await http()
+      .patch(`/api/v1/administradores/${admin.id}`)
+      .set('Cookie', superCookie)
+      .send({ empresaId: empresa.id, numeroEmpleado: 'B-1' })
+      .expect(200);
+    expect(editado.body).toMatchObject({ empresaId: empresa.id, numeroEmpleado: 'B-1' });
+
+    const ficha = await http().get(`/api/v1/administradores/${admin.id}`).set('Cookie', superCookie).expect(200);
+    expect(ficha.body.empresa).toEqual({ id: empresa.id, nombre: 'Grupo Sur' });
+    await iniciarSesion(e2e.app, { empresaId: empresa.id, numeroEmpleado: 'B-1' });
   });
 
   it('lista administradores con búsqueda, estado y cuántos permisos y sucursales tienen', async () => {
@@ -135,7 +191,16 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
 
     const lista = await http().get('/api/v1/administradores?search=laura').set('Cookie', superCookie).expect(200);
     expect(lista.body.meta.total).toBe(1);
-    expect(lista.body.data[0]).toMatchObject({ id: adminA.id, totalPermisos: TODOS_LOS_PERMISOS.length, totalSucursales: 1 });
+    expect(lista.body.data[0]).toMatchObject({
+      id: adminA.id,
+      numeroEmpleado: adminA.numeroEmpleado,
+      empresa: { id: adminA.empresaId },
+      totalPermisos: TODOS_LOS_PERMISOS.length,
+      totalSucursales: 1,
+    });
+
+    const porNumero = await http().get(`/api/v1/administradores?search=${adminA.numeroEmpleado}`).set('Cookie', superCookie).expect(200);
+    expect(porNumero.body.data.map((a: { id: string }) => a.id)).toEqual([adminA.id]);
 
     const activos = await http().get('/api/v1/administradores?activo=true').set('Cookie', superCookie).expect(200);
     expect(activos.body.meta.total).toBe(1);
@@ -143,7 +208,7 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
 
   it('edita, restablece la contraseña, desactiva y reactiva; ya no exige un administrador por empresa', async () => {
     const { adminA } = await crearDosSucursales(e2e.dataSource);
-    const cookieAdmin = await iniciarSesion(e2e.app, adminA.username);
+    const cookieAdmin = await iniciarSesion(e2e.app, adminA);
 
     const editado = await http()
       .patch(`/api/v1/administradores/${adminA.id}`)
@@ -156,9 +221,9 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
     await http().get('/api/v1/perfil').set('Cookie', cookieAdmin).expect(401);
 
     await http().post(`/api/v1/usuarios/${adminA.id}/desactivar`).set('Cookie', superCookie).expect(200);
-    await http().post('/api/v1/auth/login').send({ username: adminA.username, password: 'Reinicio2026' }).expect(401);
+    await http().post('/api/v1/auth/login').send({ empresaId: adminA.empresaId, numeroEmpleado: adminA.numeroEmpleado, password: 'Reinicio2026' }).expect(401);
     await http().post(`/api/v1/usuarios/${adminA.id}/activar`).set('Cookie', superCookie).expect(200);
-    await iniciarSesion(e2e.app, adminA.username, 'Reinicio2026');
+    await iniciarSesion(e2e.app, adminA, 'Reinicio2026');
   });
 
   it('/administradores/:id responde 404 si el usuario no es administrador', async () => {
@@ -177,7 +242,7 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
         permisos: [PERMISOS.EMPLEADOS_RESTABLECER_PASSWORD],
         sucursalIds: [sucursalA.id],
       });
-      const cookie = await iniciarSesion(e2e.app, conPassword.username);
+      const cookie = await iniciarSesion(e2e.app, conPassword);
       const enviar = (id: string) =>
         http().post(`/api/v1/usuarios/${id}/restablecer-password`).set('Cookie', cookie).send({ passwordTemporal: 'Reinicio2026' });
 
@@ -190,7 +255,7 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
     it('al quitarle una sucursal, la siguiente petición sobre sus empleados ya responde 404', async () => {
       const { sucursalA, adminA } = await crearDosSucursales(e2e.dataSource);
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-      const cookieA = await iniciarSesion(e2e.app, adminA.username);
+      const cookieA = await iniciarSesion(e2e.app, adminA);
       await http().post(`/api/v1/usuarios/${empleado.id}/desbloquear`).set('Cookie', cookieA).expect(200);
 
       await http().put(`/api/v1/administradores/${adminA.id}/acceso`).set('Cookie', superCookie).send({ permisos: TODOS_LOS_PERMISOS, sucursalIds: [] }).expect(200);
@@ -203,7 +268,7 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
       const otra = await crearSucursal(e2e.dataSource, { empresaId: empresaA.id });
       await e2e.dataSource.query(`INSERT INTO administradores_sucursales (usuario_id, sucursal_id, creado_por)
                                   SELECT $1, $2, id FROM usuarios WHERE rol = 'SUPERUSUARIO'`, [adminA.id, otra.id]);
-      const cookieA = await iniciarSesion(e2e.app, adminA.username);
+      const cookieA = await iniciarSesion(e2e.app, adminA);
 
       await http().post(`/api/v1/sucursales/${sucursalA.id}/desactivar`).set('Cookie', superCookie).expect(200);
       await http().post(`/api/v1/usuarios/${empleado.id}/desbloquear`).set('Cookie', cookieA).expect(404);
@@ -213,7 +278,7 @@ describe('Administradores, permisos y sucursales (HU-51, HU-52, HU-53)', () => {
 
     it('un administrador no gestiona administradores ni su propio acceso, aunque tenga todos los permisos (P-49)', async () => {
       const { adminA, adminB, sucursalA } = await crearDosSucursales(e2e.dataSource);
-      const cookieA = await iniciarSesion(e2e.app, adminA.username);
+      const cookieA = await iniciarSesion(e2e.app, adminA);
 
       await http().get('/api/v1/administradores').set('Cookie', cookieA).expect(403);
       await http().put(`/api/v1/administradores/${adminA.id}/acceso`).set('Cookie', cookieA).send({ permisos: [], sucursalIds: [sucursalA.id] }).expect(403);

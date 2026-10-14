@@ -26,7 +26,9 @@ export const envValidationSchema = Joi.object({
   SWAGGER_ENABLED: Joi.boolean().default(false),
 
   // Solo las usa el seed (npm run seed); la API las acepta vacias
-  SUPERUSER_USERNAME: Joi.string().allow(''),
+  SUPERUSER_EMPRESA: Joi.string().allow(''),
+  SUPERUSER_EMPRESA_PREFIJO_FOLIO: Joi.string().allow(''),
+  SUPERUSER_NUMERO_EMPLEADO: Joi.string().allow(''),
   SUPERUSER_PASSWORD: Joi.string().allow(''),
   SUPERUSER_NOMBRES: Joi.string().allow(''),
   SUPERUSER_APELLIDO_PATERNO: Joi.string().allow(''),

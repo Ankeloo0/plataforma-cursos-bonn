@@ -10,12 +10,13 @@ import { ROLES, type Rol } from '../../src/common/constants/roles.js';
 export const PASSWORD_PRUEBA = 'Prueba123';
 const HASH_PRUEBA = '$2b$04$xAzTfyG5dWFd/3qbSGKCTuPpCoMJkKJDry..l8dONVkkXtgy6Fx4i';
 
+//empresa y numero son los datos de acceso de los tres roles
 export interface UsuarioCreado {
   id: string;
-  // null para el empleado (D-34)
-  username: string | null;
   rol: Rol;
   sucursalId: string | null;
+  empresaId: string;
+  numeroEmpleado: string;
 }
 
 interface Registro {
@@ -27,19 +28,32 @@ function sufijo(): string {
   return randomUUID().slice(0, 8);
 }
 
-const COLUMNAS_USUARIO = `id, username, rol, sucursal_id AS "sucursalId"`;
+const COLUMNAS_USUARIO = `id, rol, sucursal_id AS "sucursalId", empresa_id AS "empresaId", numero_empleado AS "numeroEmpleado"`;
 
+function numeroNuevo(): string {
+  return sufijo().slice(0, 6).toUpperCase();
+}
+
+//como el seed: el superusuario, despues su empresa y al final su numero
 export async function obtenerSuperusuario(ds: DataSource): Promise<UsuarioCreado> {
   const [existente] = await ds.query(`SELECT ${COLUMNAS_USUARIO} FROM usuarios WHERE rol = $1`, [ROLES.SUPERUSUARIO]);
   if (existente) return existente;
 
-  const [creado] = await ds.query(
-    `INSERT INTO usuarios (rol, username, password_hash, nombres, apellido_paterno, debe_cambiar_password)
-     VALUES ($1, 'superusuario', $2, 'Superusuario', 'Pruebas', false)
-     RETURNING ${COLUMNAS_USUARIO}`,
+  const [{ id }] = await ds.query(
+    `INSERT INTO usuarios (rol, password_hash, nombres, apellido_paterno, debe_cambiar_password)
+     VALUES ($1, $2, 'Superusuario', 'Pruebas', false)
+     RETURNING id`,
     [ROLES.SUPERUSUARIO, HASH_PRUEBA],
   );
-  return creado;
+  const [empresa] = await ds.query(
+    `INSERT INTO empresas (nombre, prefijo_folio, creado_por) VALUES ($1, $2, $3) RETURNING id`,
+    [`Empresa del superusuario ${sufijo()}`, `S${sufijo().slice(0, 5).toUpperCase()}`, id],
+  );
+  const [creado] = await ds.query(
+    `UPDATE usuarios SET empresa_id = $1, numero_empleado = '1' WHERE id = $2 RETURNING ${COLUMNAS_USUARIO}`,
+    [empresa.id, id],
+  );
+  return creado[0];
 }
 
 export async function crearEmpresa(
@@ -85,18 +99,25 @@ export async function crearSucursal(
 
 async function insertarUsuario(
   ds: DataSource,
-  datos: { rol: Exclude<Rol, 'SUPERUSUARIO'>; sucursalId: string | null; username?: string; debeCambiarPassword?: boolean },
+  datos: {
+    rol: Exclude<Rol, 'SUPERUSUARIO'>;
+    sucursalId: string | null;
+    empresaId: string;
+    numeroEmpleado?: string;
+    debeCambiarPassword?: boolean;
+  },
 ): Promise<UsuarioCreado> {
   const superusuario = await obtenerSuperusuario(ds);
   const [usuario] = await ds.query(
-    `INSERT INTO usuarios (rol, sucursal_id, username, password_hash, nombres, apellido_paterno,
+    `INSERT INTO usuarios (rol, sucursal_id, empresa_id, numero_empleado, password_hash, nombres, apellido_paterno,
                            debe_cambiar_password, creado_por)
-     VALUES ($1, $2, $3, $4, 'Usuario', 'Pruebas', $5, $6)
+     VALUES ($1, $2, $3, $4, $5, 'Usuario', 'Pruebas', $6, $7)
      RETURNING ${COLUMNAS_USUARIO}`,
     [
       datos.rol,
       datos.sucursalId,
-      datos.rol === ROLES.EMPLEADO ? null : (datos.username ?? `usuario_${sufijo()}`),
+      datos.empresaId,
+      datos.numeroEmpleado ?? numeroNuevo(),
       HASH_PRUEBA,
       datos.debeCambiarPassword ?? false,
       superusuario.id,
@@ -105,12 +126,19 @@ async function insertarUsuario(
   return usuario;
 }
 
-// Por defecto, sin permisos ni sucursales, como al darlo de alta (RF-00.2)
+// Por defecto, sin permisos ni sucursales, como al darlo de alta (RF-00.2), y en la empresa del superusuario
 export async function crearAdministrador(
   ds: DataSource,
-  datos: { username?: string; debeCambiarPassword?: boolean; permisos?: Permiso[]; sucursalIds?: string[] } = {},
+  datos: {
+    empresaId?: string;
+    numeroEmpleado?: string;
+    debeCambiarPassword?: boolean;
+    permisos?: Permiso[];
+    sucursalIds?: string[];
+  } = {},
 ): Promise<UsuarioCreado> {
-  const admin = await insertarUsuario(ds, { ...datos, rol: ROLES.ADMIN, sucursalId: null });
+  const empresaId = datos.empresaId ?? (await obtenerSuperusuario(ds)).empresaId;
+  const admin = await insertarUsuario(ds, { ...datos, empresaId, rol: ROLES.ADMIN, sucursalId: null });
   await darAcceso(ds, admin.id, datos.permisos ?? [], datos.sucursalIds ?? []);
   return admin;
 }
@@ -173,26 +201,23 @@ export async function crearCurso(
 
 export interface EmpleadoCreado extends UsuarioCreado {
   empleadoId: string;
-  empresaId: string;
-  numeroEmpleado: string;
   puestoId: string;
 }
 
-// El empleado no tiene usuario: entra con su empresa y su numero (D-34)
+// La empresa del empleado es la de su sucursal
 export async function crearEmpleado(
   ds: DataSource,
   datos: { sucursalId: string; numeroEmpleado?: string; puestoId?: string; debeCambiarPassword?: boolean },
 ): Promise<EmpleadoCreado> {
-  const usuario = await insertarUsuario(ds, { ...datos, rol: ROLES.EMPLEADO });
+  const [{ empresa_id: empresaId }] = await ds.query(`SELECT empresa_id FROM sucursales WHERE id = $1`, [datos.sucursalId]);
+  const usuario = await insertarUsuario(ds, { ...datos, empresaId, rol: ROLES.EMPLEADO });
   const superusuario = await obtenerSuperusuario(ds);
   const puestoId = datos.puestoId ?? (await crearPuesto(ds)).id;
   const [empleado] = await ds.query(
-    `INSERT INTO empleados (usuario_id, empresa_id, numero_empleado, puesto_id, fecha_ingreso, creado_por)
-     SELECT $1, s.empresa_id, $2, $3, '2026-01-15', $4 FROM sucursales s WHERE s.id = $5
-     RETURNING id, empresa_id AS "empresaId", numero_empleado AS "numeroEmpleado"`,
-    [usuario.id, datos.numeroEmpleado ?? sufijo().slice(0, 6).toUpperCase(), puestoId, superusuario.id, datos.sucursalId],
+    `INSERT INTO empleados (usuario_id, puesto_id, fecha_ingreso, creado_por) VALUES ($1, $2, '2026-01-15', $3) RETURNING id`,
+    [usuario.id, puestoId, superusuario.id],
   );
-  return { ...usuario, empleadoId: empleado.id, empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado, puestoId };
+  return { ...usuario, empleadoId: empleado.id, puestoId };
 }
 
 // Escenario base de alcance (technical-spec 7): dos empresas con una sucursal cada una y un

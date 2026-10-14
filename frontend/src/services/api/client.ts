@@ -19,7 +19,7 @@ export const apiClient = axios.create({
 });
 
 // Rutas cuyo 401 es parte del flujo normal y no una sesion expirada
-const RUTAS_SIN_REDIRECCION = ['/auth/login', '/auth/login-empleado', '/auth/me'];
+const RUTAS_SIN_REDIRECCION = ['/auth/login', '/auth/me'];
 
 let manejarSesionExpirada: (() => void) | null = null;
 let manejarPermisoDenegado: (() => void) | null = null;

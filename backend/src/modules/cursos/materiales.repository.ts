@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, type EntityManager, type Repository } from 'typeorm';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity.js';
+import { MaterialImagen } from './entities/material-imagen.entity.js';
 import { Material } from './entities/material.entity.js';
 import { guardarOrden, siguienteOrden } from './orden.js';
 
@@ -24,9 +25,33 @@ export class MaterialesRepository {
     return this.repo.findOne({ where: { id }, relations: { archivo: true } });
   }
 
+  //el archivo de cada material y las imagenes de sus paginas
   async archivosDeTema(temaId: string): Promise<string[]> {
-    const materiales = await this.repo.find({ where: { temaId }, select: { archivoId: true } });
-    return materiales.flatMap((m) => (m.archivoId ? [m.archivoId] : []));
+    const filas: { archivo_id: string }[] = await this.repo.query(
+      `SELECT m.archivo_id FROM materiales m WHERE m.tema_id = $1 AND m.archivo_id IS NOT NULL
+       UNION ALL
+       SELECT i.archivo_id FROM materiales_imagenes i JOIN materiales m ON m.id = i.material_id WHERE m.tema_id = $1`,
+      [temaId],
+    );
+    return filas.map((f) => f.archivo_id);
+  }
+
+  async imagenesDe(materialId: string): Promise<string[]> {
+    const filas = await this.repo.manager.find(MaterialImagen, { where: { materialId }, select: { archivoId: true } });
+    return filas.map((f) => f.archivoId);
+  }
+
+  async agregarImagenes(materialId: string, archivoIds: string[], actorId: string, manager: EntityManager): Promise<void> {
+    if (archivoIds.length === 0) return;
+    await manager.insert(
+      MaterialImagen,
+      archivoIds.map((archivoId) => ({ materialId, archivoId, creadoPor: actorId })),
+    );
+  }
+
+  async quitarImagenes(materialId: string, archivoIds: string[], manager: EntityManager): Promise<void> {
+    if (archivoIds.length === 0) return;
+    await manager.delete(MaterialImagen, { materialId, archivoId: In(archivoIds) });
   }
 
   async crear(datos: DatosMaterial, manager: EntityManager): Promise<Material> {

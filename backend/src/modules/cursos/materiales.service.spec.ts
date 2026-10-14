@@ -37,6 +37,10 @@ function crear(tipoDelArchivo = 'VIDEO', material = materialDe()) {
     listarPorTemas: vi.fn().mockResolvedValue([]),
     actualizarSiNoCambio: vi.fn().mockResolvedValue(true),
     reordenar: vi.fn(),
+    eliminar: vi.fn(),
+    imagenesDe: vi.fn().mockResolvedValue([]),
+    agregarImagenes: vi.fn(),
+    quitarImagenes: vi.fn(),
   };
   const temas = { buscarEditable: vi.fn().mockResolvedValue(tema) };
   const cursos = { recalcularDuracion: vi.fn() };
@@ -179,6 +183,74 @@ describe('MaterialesService', () => {
 
     expect(repo.actualizarSiNoCambio.mock.calls[0][2]).toMatchObject({ contenido: '<p>Texto nuevo</p>', duracionSegundos: 60 });
     expect(cursos.recalcularDuracion).toHaveBeenCalled();
+  });
+
+  describe('imágenes de una página (D-39)', () => {
+    const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const img = (n: number) => `<img src="/api/v1/archivos/${id(n)}/contenido" alt="Foto ${n}">`;
+    const actualizadoEn = new Date().toISOString();
+    const pagina = () => materialDe({ tipo: 'ARTICULO', archivoId: null, contenido: `<p>Antes</p>${img(1)}${img(2)}` });
+
+    it('al crear valida cada imagen y la liga a la página; las imágenes no suman tiempo', async () => {
+      const { servicio, repo, archivos, manager } = crear('IMAGEN');
+
+      await servicio.crear('t1', { tipo: 'ARTICULO', titulo: 'Motor', contenido: `${img(1)}${img(1)}${img(2)}` }, admin);
+
+      expect(archivos.exigirParaMaterial.mock.calls.map((c) => c[0])).toEqual([id(1), id(2)]);
+      expect(repo.crear.mock.calls[0][0]).toMatchObject({ duracionSegundos: 0 });
+      expect(repo.agregarImagenes).toHaveBeenCalledWith('m1', [id(1), id(2)], 'a1', manager);
+    });
+
+    it('solo acepta imágenes como imágenes de la página', async () => {
+      const { servicio, repo } = crear('PDF');
+
+      await expect(
+        servicio.crear('t1', { tipo: 'ARTICULO', titulo: 'Motor', contenido: `<p>Hola</p>${img(1)}` }, admin),
+      ).rejects.toMatchObject({ response: { code: 'ARCHIVO_TIPO_NO_COINCIDE' } });
+      expect(repo.crear).not.toHaveBeenCalled();
+    });
+
+    it('acepta hasta 30 imágenes', async () => {
+      const { servicio } = crear('IMAGEN');
+      const muchas = Array.from({ length: 31 }, (_, i) => img(i + 1)).join('');
+
+      await expect(servicio.crear('t1', { tipo: 'ARTICULO', titulo: 'Motor', contenido: muchas }, admin)).rejects.toMatchObject({
+        response: { code: 'PAGINA_DEMASIADAS_IMAGENES' },
+      });
+    });
+
+    it('al editar solo valida las nuevas, liga las nuevas, quita las que ya no están y borra su archivo', async () => {
+      const { servicio, repo, archivos, manager } = crear('IMAGEN', pagina());
+      repo.imagenesDe.mockResolvedValue([id(1), id(2)]);
+
+      await servicio.actualizar('m1', { contenido: `<p>Después</p>${img(2)}${img(3)}`, actualizadoEn }, admin);
+
+      expect(archivos.exigirParaMaterial.mock.calls.map((c) => c[0])).toEqual([id(3)]);
+      expect(repo.quitarImagenes).toHaveBeenCalledWith('m1', [id(1)], manager);
+      expect(repo.agregarImagenes).toHaveBeenCalledWith('m1', [id(3)], 'a1', manager);
+      expect(archivos.eliminar).toHaveBeenCalledWith(id(1));
+    });
+
+    it('si alguien guardó antes no quita ni borra imágenes (V-13)', async () => {
+      const { servicio, repo, archivos } = crear('IMAGEN', pagina());
+      repo.imagenesDe.mockResolvedValue([id(1), id(2)]);
+      repo.actualizarSiNoCambio.mockResolvedValue(false);
+
+      await expect(servicio.actualizar('m1', { contenido: '<p>Solo texto</p>', actualizadoEn }, admin)).rejects.toMatchObject({
+        response: { code: 'CURSO_MODIFICADO' },
+      });
+      expect(repo.quitarImagenes).not.toHaveBeenCalled();
+      expect(archivos.eliminar).not.toHaveBeenCalled();
+    });
+
+    it('al borrar la página borra también el archivo de cada imagen', async () => {
+      const { servicio, repo, archivos } = crear('IMAGEN', pagina());
+      repo.imagenesDe.mockResolvedValue([id(1), id(2)]);
+
+      await servicio.eliminar('m1', admin);
+
+      expect(archivos.eliminar.mock.calls.map((c) => c[0])).toEqual([id(1), id(2)]);
+    });
   });
 
   it('cada tipo solo acepta su fuente al editar', async () => {

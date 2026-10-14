@@ -6,6 +6,7 @@ import { CursosController } from './cursos.controller.js';
 import { CursosRepository } from './cursos.repository.js';
 import { CursosService } from './cursos.service.js';
 import { Curso } from './entities/curso.entity.js';
+import { MaterialImagen } from './entities/material-imagen.entity.js';
 import { Material } from './entities/material.entity.js';
 import { Tema } from './entities/tema.entity.js';
 import { MaterialesController } from './materiales.controller.js';
@@ -16,7 +17,7 @@ import { TemasRepository } from './temas.repository.js';
 import { TemasService } from './temas.service.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Curso, Tema, Material]), ArchivosModule],
+  imports: [TypeOrmModule.forFeature([Curso, Tema, Material, MaterialImagen]), ArchivosModule],
   controllers: [CursosController, TemasController, MaterialesController],
   providers: [
     CursosRepository,

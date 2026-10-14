@@ -18,6 +18,7 @@
     "@fontsource-variable/figtree": "^5.3.0",
     "@fontsource/spectral": "^5.3.0",
     "@hookform/resolvers": "^5.9.1",
+    "@tiptap/extension-image": "^3.31.4",
     "@tiptap/pm": "^3.31.4",
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",

@@ -48,6 +48,7 @@ export async function prepararBasePruebas(): Promise<void> {
 
 // Tablas que se vacian entre pruebas; roles y migrations se conservan
 const TABLAS_DE_DATOS = [
+  'materiales_imagenes',
   'materiales',
   'temas',
   'cursos',

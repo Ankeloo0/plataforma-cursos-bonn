@@ -4,7 +4,7 @@ import type { Repository } from 'typeorm';
 import { Archivo, ESTADOS_ARCHIVO, type EstadoArchivo } from './entities/archivo.entity.js';
 
 // Foto: el usuario cuya foto es este archivo y su sucursal (null si no es empleado).
-// Portada y material: quien creo el curso.
+// Portada y material (tambien una imagen dentro de una pagina): quien creo el curso.
 export type UsoDeArchivo =
   | { tipo: 'FOTO'; duenoId: string; sucursalDelDueno: string | null }
   | { tipo: 'PORTADA' | 'MATERIAL'; creadorDelCurso: string };
@@ -47,8 +47,15 @@ export class ArchivosRepository {
     return resultado.affected === 1;
   }
 
+  //como archivo de un material o como imagen dentro de una pagina
   async usadoPorMaterial(id: string): Promise<boolean> {
-    const [fila] = await this.repo.query(`SELECT 1 FROM materiales WHERE archivo_id = $1 LIMIT 1`, [id]);
+    const [fila] = await this.repo.query(
+      `SELECT 1 FROM materiales WHERE archivo_id = $1
+       UNION ALL
+       SELECT 1 FROM materiales_imagenes WHERE archivo_id = $1
+       LIMIT 1`,
+      [id],
+    );
     return Boolean(fila);
   }
 
@@ -57,7 +64,8 @@ export class ArchivosRepository {
     return this.repo.query(
       `SELECT a.id FROM archivos a
        WHERE a.storage_key LIKE $1 AND a.creado_en < $2
-         AND NOT EXISTS (SELECT 1 FROM materiales m WHERE m.archivo_id = a.id)`,
+         AND NOT EXISTS (SELECT 1 FROM materiales m WHERE m.archivo_id = a.id)
+         AND NOT EXISTS (SELECT 1 FROM materiales_imagenes i WHERE i.archivo_id = a.id)`,
       [`${CARPETA_MATERIALES}/%`, antesDe],
     );
   }
@@ -72,7 +80,9 @@ export class ArchivosRepository {
       `SELECT c.creado_por FROM materiales m
        JOIN temas t ON t.id = m.tema_id
        JOIN cursos c ON c.id = t.curso_id
-       WHERE m.archivo_id = $1 LIMIT 1`,
+       WHERE m.archivo_id = $1
+          OR m.id = (SELECT i.material_id FROM materiales_imagenes i WHERE i.archivo_id = $1)
+       LIMIT 1`,
       [id],
     );
     if (material) return { tipo: 'MATERIAL', creadorDelCurso: material.creado_por };

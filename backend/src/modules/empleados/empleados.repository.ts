@@ -41,7 +41,7 @@ export class EmpleadosRepository {
     const consulta = this.conDetalle(alcance);
     if (filtros.search) {
       consulta.andWhere(
-        `(concat_ws(' ', u.nombres, u.apellido_paterno, u.apellido_materno) ILIKE :patron OR em.numero_empleado ILIKE :patron)`,
+        `(concat_ws(' ', u.nombres, u.apellido_paterno, u.apellido_materno) ILIKE :patron OR u.numero_empleado ILIKE :patron)`,
         { patron: patronBusqueda(filtros.search) },
       );
     }
@@ -89,7 +89,7 @@ export class EmpleadosRepository {
       .createQueryBuilder('em')
       .innerJoin('usuarios', 'u', 'u.id = em.usuario_id')
       .innerJoin('sucursales', 's', 's.id = u.sucursal_id')
-      .innerJoin('empresas', 'e', 'e.id = s.empresa_id')
+      .innerJoin('empresas', 'e', 'e.id = u.empresa_id')
       .innerJoin('marcas', 'm', 'm.id = s.marca_id')
       .innerJoin('puestos', 'p', 'p.id = em.puesto_id')
       .innerJoin('areas', 'a', 'a.id = p.area_id')
@@ -98,7 +98,7 @@ export class EmpleadosRepository {
       .select([
         'em.id AS id',
         'em.usuario_id AS usuario_id',
-        'em.numero_empleado AS numero_empleado',
+        'u.numero_empleado AS numero_empleado',
         `to_char(em.fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso`,
         'em.creado_en AS creado_en',
         'em.actualizado_en AS actualizado_en',
@@ -123,8 +123,8 @@ export class EmpleadosRepository {
         'm.id AS marca_id',
         'm.nombre AS marca_nombre',
       ])
-      .addSelect(`concat_ws(' ', creador.username, creador.nombres, creador.apellido_paterno, creador.apellido_materno)`, 'creado_por_nombre')
-      .addSelect(`concat_ws(' ', editor.username, editor.nombres, editor.apellido_paterno, editor.apellido_materno)`, 'actualizado_por_nombre');
+      .addSelect(`concat_ws(' ', creador.nombres, creador.apellido_paterno, creador.apellido_materno)`, 'creado_por_nombre')
+      .addSelect(`concat_ws(' ', editor.nombres, editor.apellido_paterno, editor.apellido_materno)`, 'actualizado_por_nombre');
     if (!alcance.sinLimite) consulta.where('u.sucursal_id = ANY(:ids)', { ids: alcance.sucursalIds });
     return consulta;
   }

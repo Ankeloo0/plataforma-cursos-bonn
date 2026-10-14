@@ -15,7 +15,7 @@ import { EmpresasService } from '../empresas/empresas.service.js';
 import type { PerfilResponseDto } from '../usuarios/dto/perfil-response.dto.js';
 import { UsuariosService } from '../usuarios/usuarios.service.js';
 import { AuthService, type SesionIniciada } from './auth.service.js';
-import { CambiarPasswordDto, LoginDto, LoginEmpleadoDto } from './dto/auth.dto.js';
+import { CambiarPasswordDto, LoginDto } from './dto/auth.dto.js';
 import { COOKIE_SESION } from './jwt.strategy.js';
 
 @ApiTags('Autenticación')
@@ -40,36 +40,22 @@ export class AuthController {
   }
 
   @ApiOperation({
-    summary: 'Iniciar sesión como administrador o superusuario (web)',
-    description: 'Con usuario y contraseña. Entrega la sesión en la cookie httpOnly `bonn_sesion` (8 h) y devuelve el perfil con permisos y sucursales. RF-01.1.',
+    summary: 'Iniciar sesión (web)',
+    description: 'Para los tres roles, con empresa, número de empleado y contraseña; el número solo es único dentro de la empresa. Entrega la sesión en la cookie httpOnly `bonn_sesion` (8 h) y devuelve el perfil con permisos y sucursales. RF-01.1.',
   })
   @Public()
   @UseGuards(ThrottlerGuard)
   @Post('login')
   @HttpCode(200)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response): Promise<PerfilResponseDto> {
-    const sesion = await this.authService.login(dto.username, dto.password);
+    const sesion = await this.authService.login(dto.empresaId, dto.numeroEmpleado, dto.password);
     this.guardarCookie(res, sesion);
     return this.usuariosService.obtenerPerfil(sesion.usuarioId);
   }
 
   @ApiOperation({
-    summary: 'Iniciar sesión como empleado (web)',
-    description: 'Con empresa, número de empleado y contraseña; el número solo es único dentro de la empresa. Entrega la misma cookie que `/auth/login`. RF-01.1, D-34.',
-  })
-  @Public()
-  @UseGuards(ThrottlerGuard)
-  @Post('login-empleado')
-  @HttpCode(200)
-  async loginEmpleado(@Body() dto: LoginEmpleadoDto, @Res({ passthrough: true }) res: Response): Promise<PerfilResponseDto> {
-    const sesion = await this.authService.loginEmpleado(dto.empresaId, dto.numeroEmpleado, dto.password);
-    this.guardarCookie(res, sesion);
-    return this.usuariosService.obtenerPerfil(sesion.usuarioId);
-  }
-
-  @ApiOperation({
-    summary: 'Empresas para el inicio de sesión del empleado',
-    description: 'Pública. Solo `id` y `nombre` de las empresas activas, para la lista de la pantalla de acceso. D-34.',
+    summary: 'Empresas para el inicio de sesión',
+    description: 'Pública. Solo `id` y `nombre` de las empresas activas, para la lista de la pantalla de acceso.',
   })
   @Public()
   @Get('empresas')

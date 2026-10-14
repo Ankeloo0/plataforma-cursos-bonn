@@ -25,7 +25,7 @@ const esquema = z.object({
 type Datos = z.infer<typeof esquema>;
 
 // El dispositivo recuerda la empresa para no elegirla cada vez. Si el navegador
-// no deja guardar (modo privado), el empleado solo la vuelve a elegir.
+// no deja guardar (modo privado), solo se vuelve a elegir.
 const CLAVE_EMPRESA = 'bonn_empresa_login';
 
 function empresaRecordada(): string {
@@ -44,8 +44,8 @@ function recordarEmpresa(id: string): void {
   }
 }
 
-// El numero de empleado solo es unico dentro de la empresa, por eso se pide la empresa (D-34)
-export function FormularioLoginEmpleado({ alEntrar }: { alEntrar: (usuario: Perfil) => void }) {
+// Para los tres roles. El numero de empleado solo es unico dentro de la empresa, por eso se pide la empresa
+export function FormularioLogin({ alEntrar }: { alEntrar: (usuario: Perfil) => void }) {
   const empresas = useConsulta(authService.listarEmpresas);
 
   if (empresas.estado === 'cargando') {
@@ -70,7 +70,7 @@ export function FormularioLoginEmpleado({ alEntrar }: { alEntrar: (usuario: Perf
   if (empresas.datos.length === 0) {
     return (
       <div className={styles.formulario}>
-        <Alerta tono="info">Todavía no hay empresas registradas. Pide ayuda a tu administrador.</Alerta>
+        <Alerta tono="info">Todavía no hay empresas registradas. Pide ayuda al responsable de la plataforma.</Alerta>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export function FormularioLoginEmpleado({ alEntrar }: { alEntrar: (usuario: Perf
 
 // Se monta con la lista ya cargada para que la empresa recordada quede elegida desde el inicio
 function Campos({ empresas, alEntrar }: { empresas: EmpresaLogin[]; alEntrar: (usuario: Perfil) => void }) {
-  const iniciarSesionEmpleado = useAuthStore((s) => s.iniciarSesionEmpleado);
+  const iniciarSesion = useAuthStore((s) => s.iniciarSesion);
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
   const recordada = empresaRecordada();
@@ -98,7 +98,7 @@ function Campos({ empresas, alEntrar }: { empresas: EmpresaLogin[]; alEntrar: (u
   async function enviar({ empresaId, numeroEmpleado, password }: Datos) {
     setErrorServidor(null);
     try {
-      const usuario = await iniciarSesionEmpleado(empresaId, numeroEmpleado, password);
+      const usuario = await iniciarSesion(empresaId, numeroEmpleado, password);
       recordarEmpresa(empresaId);
       alEntrar(usuario);
     } catch (error) {

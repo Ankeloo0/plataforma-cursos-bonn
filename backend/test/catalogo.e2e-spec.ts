@@ -10,7 +10,7 @@ import {
   crearPuesto,
   obtenerSuperusuario,
 } from './e2e/fabricas.js';
-import { iniciarSesion, iniciarSesionEmpleado } from './e2e/sesion.js';
+import { iniciarSesion } from './e2e/sesion.js';
 
 describe('Catálogo de áreas y puestos (HU-07, HU-08)', () => {
   let e2e: AppE2e;
@@ -23,7 +23,7 @@ describe('Catálogo de áreas y puestos (HU-07, HU-08)', () => {
 
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)).username);
+    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)));
   });
 
   afterAll(async () => {
@@ -123,8 +123,8 @@ describe('Catálogo de áreas y puestos (HU-07, HU-08)', () => {
     const { sucursalA } = await crearDosSucursales(e2e.dataSource);
     const conPermiso = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CATALOGO_GESTIONAR], sucursalIds: [sucursalA.id] });
     const sinPermiso = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.EMPLEADOS_VER], sucursalIds: [sucursalA.id] });
-    const cookieCon = await iniciarSesion(e2e.app, conPermiso.username);
-    const cookieSin = await iniciarSesion(e2e.app, sinPermiso.username);
+    const cookieCon = await iniciarSesion(e2e.app, conPermiso);
+    const cookieSin = await iniciarSesion(e2e.app, sinPermiso);
 
     await http().post('/api/v1/areas').set('Cookie', cookieCon).send({ nombre: 'Refacciones' }).expect(201);
 
@@ -137,7 +137,7 @@ describe('Catálogo de áreas y puestos (HU-07, HU-08)', () => {
   it('un empleado no consulta el catálogo', async () => {
     const { sucursalA } = await crearDosSucursales(e2e.dataSource);
     const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-    const cookie = await iniciarSesionEmpleado(e2e.app, empleado);
+    const cookie = await iniciarSesion(e2e.app, empleado);
     await http().get('/api/v1/areas').set('Cookie', cookie).expect(403);
   });
 });

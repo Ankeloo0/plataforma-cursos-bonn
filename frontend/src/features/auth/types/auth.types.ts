@@ -22,7 +22,7 @@ export interface SucursalResumen {
   marca: { id: string; nombre: string };
 }
 
-// Empresas activas para el inicio de sesion del empleado (/auth/empresas)
+// Empresas activas para el inicio de sesion (/auth/empresas)
 export interface EmpresaLogin {
   id: string;
   nombre: string;
@@ -30,7 +30,6 @@ export interface EmpresaLogin {
 
 // Datos laborales del empleado (RF-01.7)
 export interface DatosLaborales {
-  numeroEmpleado: string;
   fechaIngreso: string;
   puesto: { id: string; nombre: string };
   area: { id: string; nombre: string };
@@ -39,8 +38,9 @@ export interface DatosLaborales {
 // Respuesta de /auth/me y /perfil
 export interface Perfil {
   id: string;
-  // null para el empleado: entra con su empresa y su numero de empleado (D-34)
-  username: string | null;
+  // Datos de acceso de los tres roles; null en un administrador que aun no tiene numero
+  numeroEmpleado: string | null;
+  empresa: { id: string; nombre: string } | null;
   rol: Rol;
   nombres: string;
   apellidoPaterno: string;

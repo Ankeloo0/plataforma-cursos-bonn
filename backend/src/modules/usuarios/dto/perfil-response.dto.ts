@@ -10,7 +10,6 @@ export class SucursalResumenDto extends ReferenciaDto {
 }
 
 export class DatosLaboralesDto {
-  numeroEmpleado: string;
   fechaIngreso: string;
   puesto: ReferenciaDto;
   area: ReferenciaDto;
@@ -19,8 +18,9 @@ export class DatosLaboralesDto {
 // Lo que necesita el frontend para la sesion (/auth/me) y para "Mi perfil"
 export class PerfilResponseDto {
   id: string;
-  // null para el empleado
-  username: string | null;
+  numeroEmpleado: string | null;
+  // La empresa de su numero de empleado
+  empresa: ReferenciaDto | null;
   rol: string;
   nombres: string;
   apellidoPaterno: string;
@@ -37,14 +37,15 @@ export class PerfilResponseDto {
   empleado: DatosLaboralesDto | null;
 
   static desde(
-    { usuario, sucursal }: UsuarioConSucursal,
+    { usuario, empresa, sucursal }: UsuarioConSucursal,
     permisos: Permiso[],
     sucursales: SucursalDeAlcance[],
     laborales: DatosLaborales | null = null,
   ): PerfilResponseDto {
     return {
       id: usuario.id,
-      username: usuario.username,
+      numeroEmpleado: usuario.numeroEmpleado,
+      empresa: empresa ? { id: empresa.id, nombre: empresa.nombre } : null,
       rol: usuario.rol,
       nombres: usuario.nombres,
       apellidoPaterno: usuario.apellidoPaterno,

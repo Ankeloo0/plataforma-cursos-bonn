@@ -3,7 +3,9 @@ import type { Permiso } from '../../auth/types/auth.types';
 export interface Administrador {
   id: string;
   rol: string;
-  username: string;
+  // Con que entra; null si se creo antes de los numeros de empleado y aun no se le asignan
+  empresaId: string | null;
+  numeroEmpleado: string | null;
   nombres: string;
   apellidoPaterno: string;
   apellidoMaterno: string | null;
@@ -17,6 +19,7 @@ export interface Administrador {
 }
 
 export interface AdministradorResumen extends Administrador {
+  empresa: { id: string; nombre: string } | null;
   totalPermisos: number;
   totalSucursales: number;
 }
@@ -30,6 +33,7 @@ export interface SucursalDeAlcance {
 }
 
 export interface AdministradorDetalle extends Administrador {
+  empresa: { id: string; nombre: string } | null;
   permisos: Permiso[];
   sucursales: SucursalDeAlcance[];
 }
@@ -38,7 +42,8 @@ export interface DatosAdministrador {
   nombres: string;
   apellidoPaterno: string;
   apellidoMaterno: string | null;
-  username: string;
+  empresaId: string;
+  numeroEmpleado: string;
 }
 
 export interface FiltrosAdministradores {

@@ -166,16 +166,13 @@ export function PerfilPage() {
                 <dt>Nombre</dt>
                 <dd>{[datos.nombres, datos.apellidoPaterno, datos.apellidoMaterno].filter(Boolean).join(' ')}</dd>
               </div>
-              {datos.username && (
-                <div>
-                  <dt>Usuario</dt>
-                  <dd>{datos.username}</dd>
-                </div>
-              )}
-              {datos.empleado && (
+              {datos.numeroEmpleado && (
                 <div>
                   <dt>Número de empleado</dt>
-                  <dd className="cifras-tabulares">{datos.empleado.numeroEmpleado}</dd>
+                  <dd>
+                    <span className="cifras-tabulares">{datos.numeroEmpleado}</span>
+                    {datos.empresa && <span className={styles.secundario}>{datos.empresa.nombre}</span>}
+                  </dd>
                 </div>
               )}
               <div>

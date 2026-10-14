@@ -4,7 +4,8 @@ import type { Perfil } from '../features/auth/types/auth.types';
 export function perfil(datos: Partial<Perfil> = {}): Perfil {
   return {
     id: 'u1',
-    username: 'jperez',
+    numeroEmpleado: 'A-100',
+    empresa: { id: 'e1', nombre: 'Grupo Centro' },
     rol: 'ADMIN',
     nombres: 'Juan',
     apellidoPaterno: 'Pérez',

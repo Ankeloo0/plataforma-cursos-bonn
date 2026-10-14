@@ -97,7 +97,11 @@ export class CursosRepository {
   async archivosDeMateriales(id: string): Promise<string[]> {
     const filas: { archivo_id: string }[] = await this.repo.query(
       `SELECT m.archivo_id FROM materiales m JOIN temas t ON t.id = m.tema_id
-       WHERE t.curso_id = $1 AND m.archivo_id IS NOT NULL`,
+       WHERE t.curso_id = $1 AND m.archivo_id IS NOT NULL
+       UNION ALL
+       SELECT i.archivo_id FROM materiales_imagenes i
+       JOIN materiales m ON m.id = i.material_id JOIN temas t ON t.id = m.tema_id
+       WHERE t.curso_id = $1`,
       [id],
     );
     return filas.map((f) => f.archivo_id);
@@ -131,11 +135,11 @@ export class CursosRepository {
       .leftJoin('usuarios', 'creador', 'creador.id = c.creado_por')
       .leftJoin('usuarios', 'editor', 'editor.id = c.actualizado_por')
       .addSelect(
-        `concat_ws(' ', creador.username, creador.nombres, creador.apellido_paterno, creador.apellido_materno)`,
+        `concat_ws(' ', creador.nombres, creador.apellido_paterno, creador.apellido_materno)`,
         'creado_por_nombre',
       )
       .addSelect(
-        `concat_ws(' ', editor.username, editor.nombres, editor.apellido_paterno, editor.apellido_materno)`,
+        `concat_ws(' ', editor.nombres, editor.apellido_paterno, editor.apellido_materno)`,
         'actualizado_por_nombre',
       );
   }

@@ -23,7 +23,7 @@ export interface Material {
   duracionSegundos: number;
   archivo: ArchivoDeMaterial | null;
   urlExterna: string | null;
-  // HTML del articulo, ya limpiado por la API
+  // HTML de la pagina, ya limpiado por la API
   contenido: string | null;
   actualizadoEn: string;
 }

@@ -78,30 +78,56 @@ describe('UsuariosService', () => {
     it('guarda el hash, nunca la contrasena, y obliga a cambiarla (RF-01.2)', async () => {
       const { servicio, repo } = crear(null);
       await servicio.crear(
-        { rol: 'ADMIN', nombres: 'Ana', apellidoPaterno: 'Ruiz', username: 'aruiz', passwordTemporal: 'Temporal1' },
+        { rol: 'ADMIN', empresaId: 'E1', numeroEmpleado: '1024', nombres: 'Ana', apellidoPaterno: 'Ruiz', passwordTemporal: 'Temporal1' },
         's1',
       );
       const guardado = repo.crear.mock.calls[0][0];
-      expect(guardado).toMatchObject({ debeCambiarPassword: true, creadoPor: 's1', apellidoMaterno: null, sucursalId: null });
+      expect(guardado).toMatchObject({
+        debeCambiarPassword: true,
+        creadoPor: 's1',
+        apellidoMaterno: null,
+        sucursalId: null,
+        empresaId: 'E1',
+        numeroEmpleado: '1024',
+      });
       expect(await bcrypt.compare('Temporal1', guardado.passwordHash!)).toBe(true);
     });
 
-    it('el empleado nace sin usuario: entra con su numero de empleado (D-34)', async () => {
+    it('el empleado guarda su sucursal, su empresa y su numero', async () => {
       const { servicio, repo } = crear(null);
       await servicio.crear(
-        { rol: 'EMPLEADO', sucursalId: 'A', nombres: 'Luis', apellidoPaterno: 'Mora', passwordTemporal: 'Temporal1' },
+        {
+          rol: 'EMPLEADO',
+          sucursalId: 'A',
+          empresaId: 'E1',
+          numeroEmpleado: '77',
+          nombres: 'Luis',
+          apellidoPaterno: 'Mora',
+          passwordTemporal: 'Temporal1',
+        },
         'a1',
       );
-      expect(repo.crear.mock.calls[0][0]).toMatchObject({ rol: 'EMPLEADO', username: null, sucursalId: 'A' });
+      expect(repo.crear.mock.calls[0][0]).toMatchObject({ rol: 'EMPLEADO', sucursalId: 'A', empresaId: 'E1', numeroEmpleado: '77' });
     });
   });
 
   describe('actualizarCuenta', () => {
-    it('no le pone usuario a un empleado (D-34)', async () => {
-      const objetivo = usuario({ rol: 'EMPLEADO', sucursalId: 'A', username: null });
+    it('no cambia la empresa de un empleado: sigue a su sucursal', async () => {
+      const objetivo = usuario({ rol: 'EMPLEADO', sucursalId: 'A', empresaId: 'E1', numeroEmpleado: '77' });
       const { servicio } = crear(objetivo);
-      const resultado = await servicio.actualizarCuenta('x', { username: 'lmora' }, superusuario);
-      expect(resultado.username).toBeNull();
+      const resultado = await servicio.actualizarCuenta('x', { empresaId: 'E2' }, superusuario);
+      expect(resultado.empresaId).toBe('E1');
+    });
+
+    it('a un administrador sin numero le pide la empresa y el numero juntos', async () => {
+      const objetivo = usuario({ empresaId: null, numeroEmpleado: null });
+      const { servicio, repo } = crear(objetivo);
+      const error = await servicio.actualizarCuenta('x', { numeroEmpleado: '5' }, superusuario).catch((e: UnprocessableEntityException) => e);
+      expect((error as UnprocessableEntityException).getResponse()).toMatchObject({ code: 'NUMERO_SIN_EMPRESA' });
+      expect(repo.guardar).not.toHaveBeenCalled();
+
+      const resultado = await servicio.actualizarCuenta('x', { empresaId: 'E1', numeroEmpleado: '5' }, superusuario);
+      expect(resultado).toMatchObject({ empresaId: 'E1', numeroEmpleado: '5' });
     });
   });
 

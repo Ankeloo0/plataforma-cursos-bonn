@@ -4,9 +4,6 @@ import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js'
 import { ABooleano, Recortar } from '../../../common/utils/transformaciones.js';
 import { CrearCuentaDto } from '../../usuarios/dto/datos-cuenta.dto.js';
 
-const NUMERO_FORMATO = /^[A-Za-z0-9-]{1,20}$/;
-const NUMERO_MENSAJE = 'El número de empleado solo puede tener letras sin acentos, números y guion, hasta 20 caracteres.';
-
 export class QueryEmpleadosDto extends PaginationQueryDto {
   // Nombre, apellidos o numero de empleado
   @Recortar()
@@ -33,15 +30,9 @@ export class QueryEmpleadosDto extends PaginationQueryDto {
   activo?: boolean;
 }
 
-// El empleado no tiene usuario: entra con su empresa y su numero (D-34)
-export class CrearEmpleadoDto extends OmitType(CrearCuentaDto, ['username'] as const) {
+export class CrearEmpleadoDto extends CrearCuentaDto {
   @IsUUID('all', { message: 'Elige la sucursal.' })
   sucursalId: string;
-
-  @Recortar()
-  @IsString()
-  @Matches(NUMERO_FORMATO, { message: NUMERO_MENSAJE })
-  numeroEmpleado: string;
 
   @IsUUID('all', { message: 'Elige el puesto.' })
   puestoId: string;

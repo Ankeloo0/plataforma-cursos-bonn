@@ -1,11 +1,11 @@
-import { IsNotEmpty, IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { PASSWORD_POLITICA, PASSWORD_POLITICA_MENSAJE } from '../../../common/constants/seguridad.js';
 import { Recortar, RecortarONulo } from '../../../common/utils/transformaciones.js';
 
-const USERNAME_FORMATO = /^[A-Za-z0-9._-]+$/;
-const USERNAME_MENSAJE = 'El usuario solo puede tener letras sin acentos, números, punto, guion y guion bajo.';
+const NUMERO_FORMATO = /^[A-Za-z0-9-]{1,20}$/;
+const NUMERO_MENSAJE = 'El número de empleado solo puede tener letras sin acentos, números y guion, hasta 20 caracteres.';
 
-// Datos de cuenta del alta de administradores. El empleado (I2) usa los mismos sin username (D-34)
+//datos de cuenta comunes al alta de administradores y empleados
 export class CrearCuentaDto {
   @Recortar()
   @IsString()
@@ -27,9 +27,8 @@ export class CrearCuentaDto {
 
   @Recortar()
   @IsString()
-  @Length(3, 50, { message: 'El usuario debe tener entre 3 y 50 caracteres.' })
-  @Matches(USERNAME_FORMATO, { message: USERNAME_MENSAJE })
-  username: string;
+  @Matches(NUMERO_FORMATO, { message: NUMERO_MENSAJE })
+  numeroEmpleado: string;
 
   @IsString()
   @Matches(PASSWORD_POLITICA, { message: PASSWORD_POLITICA_MENSAJE })
@@ -61,9 +60,8 @@ export class ActualizarCuentaDto {
   @Recortar()
   @IsOptional()
   @IsString()
-  @Length(3, 50, { message: 'El usuario debe tener entre 3 y 50 caracteres.' })
-  @Matches(USERNAME_FORMATO, { message: USERNAME_MENSAJE })
-  username?: string;
+  @Matches(NUMERO_FORMATO, { message: NUMERO_MENSAJE })
+  numeroEmpleado?: string;
 }
 
 export class RestablecerPasswordDto {

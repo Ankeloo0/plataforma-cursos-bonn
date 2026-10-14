@@ -14,14 +14,21 @@ export interface SucursalDeUsuario {
   marca: { id: string; nombre: string };
 }
 
+export interface EmpresaDeUsuario {
+  id: string;
+  nombre: string;
+  activo: boolean;
+}
+
+// empresa es la de su numero de empleado; en el empleado coincide con la de su sucursal
 export interface UsuarioConSucursal {
   usuario: Usuario;
+  empresa: EmpresaDeUsuario | null;
   sucursal: SucursalDeUsuario | null;
 }
 
 // Datos laborales del empleado para "Mi perfil" (RF-01.7)
 export interface DatosLaborales {
-  numeroEmpleado: string;
   fechaIngreso: string;
   puesto: { id: string; nombre: string };
   area: { id: string; nombre: string };
@@ -36,6 +43,7 @@ export interface FiltrosAdministradores {
 
 export interface AdministradorConResumen {
   usuario: Usuario;
+  empresa: { id: string; nombre: string } | null;
   permisos: number;
   sucursales: number;
 }
@@ -48,20 +56,13 @@ export class UsuariosRepository {
     return this.repo.findOneBy({ id });
   }
 
-  // El usuario es unico sin distinguir mayusculas (RN-01.1); los empleados no tienen usuario
-  buscarPorUsernameConSucursal(username: string): Promise<UsuarioConSucursal | null> {
-    return this.conSucursal(this.repo.createQueryBuilder('u').where('lower(u.username) = lower(:username)', { username }));
-  }
-
-  // El numero de empleado es unico dentro de la empresa (RN-01.1). La tabla empleados se crea en I2.
-  buscarEmpleadoParaLogin(empresaId: string, numeroEmpleado: string): Promise<UsuarioConSucursal | null> {
+  //cualquier rol; el numero es unico dentro de la empresa y no distingue mayusculas
+  buscarParaLogin(empresaId: string, numeroEmpleado: string): Promise<UsuarioConSucursal | null> {
     return this.conSucursal(
       this.repo
         .createQueryBuilder('u')
-        .innerJoin('empleados', 'emp', 'emp.usuario_id = u.id')
-        .where('emp.empresa_id = :empresaId', { empresaId })
-        .andWhere('lower(emp.numero_empleado) = lower(:numeroEmpleado)', { numeroEmpleado })
-        .andWhere('u.rol = :rol', { rol: ROLES.EMPLEADO }),
+        .where('u.empresa_id = :empresaId', { empresaId })
+        .andWhere('lower(u.numero_empleado) = lower(:numeroEmpleado)', { numeroEmpleado }),
     );
   }
 
@@ -73,7 +74,7 @@ export class UsuariosRepository {
     const consulta = this.repo.createQueryBuilder('u').where('u.rol = :rol', { rol: ROLES.ADMIN });
     if (filtros.search) {
       consulta.andWhere(
-        `(concat_ws(' ', u.nombres, u.apellido_paterno, u.apellido_materno) ILIKE :patron OR u.username ILIKE :patron)`,
+        `(concat_ws(' ', u.nombres, u.apellido_paterno, u.apellido_materno) ILIKE :patron OR u.numero_empleado ILIKE :patron)`,
         { patron: patronBusqueda(filtros.search) },
       );
     }
@@ -81,6 +82,7 @@ export class UsuariosRepository {
 
     const total = await consulta.getCount();
     const { entities, raw } = await consulta
+      .addSelect('(SELECT nombre FROM empresas e WHERE e.id = u.empresa_id)', 'empresa_nombre')
       .addSelect('(SELECT count(*) FROM usuarios_permisos p WHERE p.usuario_id = u.id)::int', 'total_permisos')
       .addSelect('(SELECT count(*) FROM administradores_sucursales a WHERE a.usuario_id = u.id)::int', 'total_sucursales')
       .orderBy('u.activo', 'DESC')
@@ -92,7 +94,8 @@ export class UsuariosRepository {
 
     const administradores = entities.map((usuario) => {
       const fila = raw.find((r: Record<string, unknown>) => r.u_id === usuario.id)!;
-      return { usuario, permisos: Number(fila.total_permisos), sucursales: Number(fila.total_sucursales) };
+      const empresa = usuario.empresaId ? { id: usuario.empresaId, nombre: fila.empresa_nombre as string } : null;
+      return { usuario, empresa, permisos: Number(fila.total_permisos), sucursales: Number(fila.total_sucursales) };
     });
     return { administradores, total };
   }
@@ -105,7 +108,7 @@ export class UsuariosRepository {
 
   async datosLaboralesDe(usuarioId: string): Promise<DatosLaborales | null> {
     const [fila]: Record<string, string>[] = await this.repo.query(
-      `SELECT em.numero_empleado, to_char(em.fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
+      `SELECT to_char(em.fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
               p.id AS puesto_id, p.nombre AS puesto_nombre, a.id AS area_id, a.nombre AS area_nombre
          FROM empleados em
          JOIN puestos p ON p.id = em.puesto_id
@@ -115,7 +118,6 @@ export class UsuariosRepository {
     );
     if (!fila) return null;
     return {
-      numeroEmpleado: fila.numero_empleado,
       fechaIngreso: fila.fecha_ingreso,
       puesto: { id: fila.puesto_id, nombre: fila.puesto_nombre },
       area: { id: fila.area_id, nombre: fila.area_nombre },
@@ -149,7 +151,7 @@ export class UsuariosRepository {
   private async conSucursal(consulta: SelectQueryBuilder<Usuario>): Promise<UsuarioConSucursal | null> {
     const { entities, raw } = await consulta
       .leftJoin('sucursales', 's', 's.id = u.sucursal_id')
-      .leftJoin('empresas', 'e', 'e.id = s.empresa_id')
+      .leftJoin('empresas', 'e', 'e.id = u.empresa_id')
       .leftJoin('marcas', 'm', 'm.id = s.marca_id')
       .addSelect([
         's.nombre AS sucursal_nombre',
@@ -165,15 +167,18 @@ export class UsuariosRepository {
 
     const [usuario] = entities;
     const fila = raw[0];
+    const empresa: EmpresaDeUsuario | null = usuario.empresaId
+      ? { id: fila.empresa_id, nombre: fila.empresa_nombre, activo: fila.empresa_activo }
+      : null;
     const sucursal: SucursalDeUsuario | null = usuario.sucursalId
       ? {
           id: usuario.sucursalId,
           nombre: fila.sucursal_nombre,
           activo: fila.sucursal_activo,
-          empresa: { id: fila.empresa_id, nombre: fila.empresa_nombre, activo: fila.empresa_activo },
+          empresa: empresa!,
           marca: { id: fila.marca_id, nombre: fila.marca_nombre },
         }
       : null;
-    return { usuario, sucursal };
+    return { usuario, empresa, sucursal };
   }
 }

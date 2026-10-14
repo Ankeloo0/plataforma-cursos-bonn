@@ -15,13 +15,15 @@ export const TIPOS_MATERIAL: Record<TipoMaterial, InfoTipo> = {
   IMAGEN: { etiqueta: 'Imagen', icono: ImageIcon, descripcion: 'JPG, PNG o WebP' },
   DOCUMENTO: { etiqueta: 'Documento', icono: FileDown, descripcion: 'Word, Excel o PowerPoint' },
   ENLACE: { etiqueta: 'Enlace', icono: Link, descripcion: 'Una página externa' },
-  ARTICULO: { etiqueta: 'Artículo', icono: AlignLeft, descripcion: 'Texto escrito aquí' },
+  //se guarda como ARTICULO; en pantalla se llama pagina (D-39)
+  ARTICULO: { etiqueta: 'Página', icono: AlignLeft, descripcion: 'Texto e imágenes escritos aquí' },
 };
 
 export const TIPOS_DISPONIBLES: TipoMaterial[] = ['VIDEO', 'PDF', 'IMAGEN', 'DOCUMENTO', 'ENLACE', 'ARTICULO'];
 
-// Mismo limite que valida la API (technical-spec 4.8)
+// Mismos limites que valida la API (technical-spec 4.8)
 export const ARTICULO_MAXIMO_CARACTERES = 100_000;
+export const PAGINA_MAXIMO_IMAGENES = 30;
 
 // Mismos tipos y limites que valida la API (P-10); aqui solo evitan subir un archivo que se rechazara
 export const ARCHIVO_POR_TIPO: Record<TipoArchivo, { accept: string; maximo: number; ayuda: string }> = {
@@ -67,7 +69,7 @@ function dominio(url: string): string {
   }
 }
 
-// El dato de cada fila del plan: "Video · 12 min", "PDF · 2.3 MB", "Enlace · youtube.com", "Artículo · 4 min"
+// El dato de cada fila del plan: "Video · 12 min", "PDF · 2.3 MB", "Enlace · youtube.com", "Página · 4 min"
 export function detalleMaterial(material: Material): string {
   const etiqueta = TIPOS_MATERIAL[material.tipo].etiqueta;
   if (material.tipo === 'VIDEO' || material.tipo === 'ARTICULO') return `${etiqueta} · ${duracionCorta(material.duracionSegundos)}`;

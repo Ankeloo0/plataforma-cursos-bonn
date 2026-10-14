@@ -28,7 +28,7 @@ const datosAlta = {
   passwordTemporal: 'Temporal2026',
 };
 
-function crear(empleado: Partial<Empleado> | null = { id: 'e1', usuarioId: 'u1', empresaId: 'E1', puestoId: 'p1' }) {
+function crear(empleado: Partial<Empleado> | null = { id: 'e1', usuarioId: 'u1', puestoId: 'p1' }) {
   const manager = {};
   const repo = {
     crear: vi.fn().mockResolvedValue({ id: 'e1' }),
@@ -40,7 +40,7 @@ function crear(empleado: Partial<Empleado> | null = { id: 'e1', usuarioId: 'u1',
   const usuarios = {
     crear: vi.fn().mockResolvedValue({ id: 'u1' }),
     guardar: vi.fn(),
-    obtenerGestionable: vi.fn().mockResolvedValue({ id: 'u1', sucursalId: 'A' } as Usuario),
+    obtenerGestionable: vi.fn().mockResolvedValue({ id: 'u1', sucursalId: 'A', empresaId: 'E1' } as Usuario),
   };
   const alcance = { exigirSucursal: vi.fn().mockResolvedValue({ id: 'A', empresaId: 'E1' }) };
   const catalogo = { exigirPuestoActivo: vi.fn().mockResolvedValue({ id: 'p1' }) };
@@ -58,18 +58,23 @@ function crear(empleado: Partial<Empleado> | null = { id: 'e1', usuarioId: 'u1',
 
 describe('EmpleadosService', () => {
   describe('crear (RF-03.1)', () => {
-    it('crea la cuenta sin usuario y el empleado en la misma transacción, con la empresa de su sucursal (D-34)', async () => {
+    it('crea la cuenta con el numero y la empresa de su sucursal, y el empleado, en la misma transacción', async () => {
       const { servicio, repo, usuarios, manager } = crear();
       await servicio.crear(datosAlta, adminA);
 
       expect(usuarios.crear).toHaveBeenCalledWith(
-        expect.objectContaining({ rol: 'EMPLEADO', sucursalId: 'A', passwordTemporal: 'Temporal2026' }),
+        expect.objectContaining({
+          rol: 'EMPLEADO',
+          sucursalId: 'A',
+          empresaId: 'E1',
+          numeroEmpleado: '1024',
+          passwordTemporal: 'Temporal2026',
+        }),
         'a1',
         manager,
       );
-      expect(usuarios.crear.mock.calls[0][0]).not.toHaveProperty('username');
       expect(repo.crear).toHaveBeenCalledWith(
-        expect.objectContaining({ usuarioId: 'u1', empresaId: 'E1', numeroEmpleado: '1024', creadoPor: 'a1' }),
+        expect.objectContaining({ usuarioId: 'u1', puestoId: 'p1', creadoPor: 'a1' }),
         manager,
       );
     });
@@ -104,11 +109,11 @@ describe('EmpleadosService', () => {
       await servicio.actualizar('e1', { sucursalId: 'A2', puestoId: 'p2', numeroEmpleado: 'A-9' }, adminA);
 
       expect(catalogo.exigirPuestoActivo).toHaveBeenCalledWith('p2');
-      expect(usuarios.guardar).toHaveBeenCalledWith(expect.objectContaining({ sucursalId: 'A2', actualizadoPor: 'a1' }), expect.anything());
-      expect(repo.guardar).toHaveBeenCalledWith(
-        expect.objectContaining({ puestoId: 'p2', numeroEmpleado: 'A-9', empresaId: 'E1', actualizadoPor: 'a1' }),
+      expect(usuarios.guardar).toHaveBeenCalledWith(
+        expect.objectContaining({ sucursalId: 'A2', empresaId: 'E1', numeroEmpleado: 'A-9', actualizadoPor: 'a1' }),
         expect.anything(),
       );
+      expect(repo.guardar).toHaveBeenCalledWith(expect.objectContaining({ puestoId: 'p2', actualizadoPor: 'a1' }), expect.anything());
     });
   });
 

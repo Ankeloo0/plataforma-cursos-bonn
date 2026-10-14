@@ -19,8 +19,8 @@ describe('AllExceptionsFilter', () => {
   });
 
   it('traduce un duplicado conocido a 409 con su código específico', () => {
-    const body = filtro.toErrorBody(errorPg({ code: '23505', constraint: 'uq_usuarios_username_ci' }));
-    expect(body).toMatchObject({ statusCode: 409, code: 'USUARIO_USERNAME_DUPLICADO' });
+    const body = filtro.toErrorBody(errorPg({ code: '23505', constraint: 'uq_usuarios_empresa_numero_ci' }));
+    expect(body).toMatchObject({ statusCode: 409, code: 'EMPLEADO_NUMERO_DUPLICADO' });
   });
 
   it('traduce un duplicado sin mensaje propio a 409 genérico', () => {

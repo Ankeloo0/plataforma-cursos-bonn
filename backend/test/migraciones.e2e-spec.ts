@@ -25,7 +25,7 @@ async function codigoDeError(consulta: Promise<unknown>): Promise<string | undef
 }
 
 // Las reglas criticas las protege la base aunque el codigo fallara (database-design 3.x, D-19, D-20)
-describe('Migraciones 1 a 5: restricciones de la base', () => {
+describe('Migraciones 1 a 7: restricciones de la base', () => {
   let ds: DataSource;
 
   beforeAll(async () => {
@@ -50,8 +50,8 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
   it('solo permite un superusuario (D-20)', async () => {
     await obtenerSuperusuario(ds);
     const codigo = await codigoDeError(
-      ds.query(`INSERT INTO usuarios (rol, username, password_hash, nombres, apellido_paterno)
-                VALUES ('SUPERUSUARIO', 'otro_super', 'x', 'Otro', 'Super')`),
+      ds.query(`INSERT INTO usuarios (rol, password_hash, nombres, apellido_paterno)
+                VALUES ('SUPERUSUARIO', 'x', 'Otro', 'Super')`),
     );
     expect(codigo).toBe('23505');
   });
@@ -72,29 +72,38 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
     expect(empleadoSinSucursal).toBe('23514');
   });
 
-  it('solo el empleado va sin usuario: entra con su número de empleado (D-34)', async () => {
+  it('el empleado siempre tiene número, y nadie tiene número sin empresa', async () => {
     const { sucursalA, adminA } = await crearDosSucursales(ds);
     const superusuario = await obtenerSuperusuario(ds);
-    const empleadoConUsuario = await codigoDeError(
-      ds.query(`INSERT INTO usuarios (rol, sucursal_id, username, password_hash, nombres, apellido_paterno, creado_por)
-                VALUES ('EMPLEADO', $1, 'empleado', 'x', 'A', 'B', $2)`, [sucursalA.id, superusuario.id]),
+    const empleadoSinNumero = await codigoDeError(
+      ds.query(`INSERT INTO usuarios (rol, sucursal_id, password_hash, nombres, apellido_paterno, creado_por)
+                VALUES ('EMPLEADO', $1, 'x', 'A', 'B', $2)`, [sucursalA.id, superusuario.id]),
     );
-    expect(empleadoConUsuario).toBe('23514');
-    expect(await codigoDeError(ds.query(`UPDATE usuarios SET username = NULL WHERE id = $1`, [adminA.id]))).toBe('23514');
-    expect(await codigoDeError(ds.query(`UPDATE usuarios SET username = NULL WHERE id = $1`, [superusuario.id]))).toBe('23514');
+    expect(empleadoSinNumero).toBe('23514');
+    expect(await codigoDeError(ds.query(`UPDATE usuarios SET empresa_id = NULL WHERE id = $1`, [adminA.id]))).toBe('23514');
+    //el administrador anterior a los numeros puede quedar sin ninguno de los dos
+    expect(
+      await codigoDeError(ds.query(`UPDATE usuarios SET empresa_id = NULL, numero_empleado = NULL WHERE id = $1`, [adminA.id])),
+    ).toBeUndefined();
+  });
+
+  it('el número es único dentro de la empresa entre todos los roles, sin distinguir mayúsculas', async () => {
+    const { sucursalA, empresaA } = await crearDosSucursales(ds);
+    await crearEmpleado(ds, { sucursalId: sucursalA.id, numeroEmpleado: 'vw-1' });
+    expect(await codigoDeError(crearAdministrador(ds, { empresaId: empresaA.id, numeroEmpleado: 'VW-1' }))).toBe('23505');
+    const otraEmpresa = await crearEmpresa(ds);
+    expect(await codigoDeError(crearAdministrador(ds, { empresaId: otraEmpresa.id, numeroEmpleado: 'VW-1' }))).toBeUndefined();
   });
 
   it('exige creador a administradores y empleados', async () => {
     const codigo = await codigoDeError(
-      ds.query(`INSERT INTO usuarios (rol, username, password_hash, nombres, apellido_paterno)
-                VALUES ('ADMIN', 'admin_sin_creador', 'x', 'A', 'B')`),
+      ds.query(`INSERT INTO usuarios (rol, password_hash, nombres, apellido_paterno)
+                VALUES ('ADMIN', 'x', 'A', 'B')`),
     );
     expect(codigo).toBe('23514');
   });
 
-  it('trata el usuario, la empresa y la marca como únicos sin distinguir mayúsculas', async () => {
-    await crearAdministrador(ds, { username: 'jperez' });
-    expect(await codigoDeError(crearAdministrador(ds, { username: 'JPerez' }))).toBe('23505');
+  it('trata la empresa y la marca como únicas sin distinguir mayúsculas', async () => {
     await crearEmpresa(ds, { nombre: 'Grupo Norte' });
     expect(await codigoDeError(crearEmpresa(ds, { nombre: 'GRUPO NORTE' }))).toBe('23505');
     await crearMarca(ds, { nombre: 'Volkswagen' });
@@ -170,9 +179,8 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
     const superusuario = await obtenerSuperusuario(ds);
     const segunda = await codigoDeError(
       ds.query(
-        `INSERT INTO empleados (usuario_id, empresa_id, numero_empleado, puesto_id, fecha_ingreso, creado_por)
-         VALUES ($1, $2, 'OTRO', $3, '2026-01-01', $4)`,
-        [empleado.id, empleado.empresaId, empleado.puestoId, superusuario.id],
+        `INSERT INTO empleados (usuario_id, puesto_id, fecha_ingreso, creado_por) VALUES ($1, $2, '2026-01-01', $3)`,
+        [empleado.id, empleado.puestoId, superusuario.id],
       ),
     );
     expect(segunda).toBe('23505');
@@ -265,6 +273,41 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
     expect(await codigoDeError(ds.query(`UPDATE archivos SET estado = 'SUBIENDO' WHERE id = $1`, [archivo.id]))).toBe('23514');
   });
 
+  it('una imagen vive en una sola página, y sus filas se van con la página (D-39)', async () => {
+    const superusuario = await obtenerSuperusuario(ds);
+    const curso = await crearCurso(ds);
+    const [tema] = await ds.query(`INSERT INTO temas (curso_id, titulo, orden, creado_por) VALUES ($1, 'T', 1, $2) RETURNING id`, [
+      curso.id,
+      superusuario.id,
+    ]);
+    const pagina = async (orden: number) =>
+      (
+        await ds.query(
+          `INSERT INTO materiales (tema_id, tipo, titulo, contenido, orden, creado_por)
+           VALUES ($1, 'ARTICULO', 'P', '<p>x</p>', $2, $3) RETURNING id`,
+          [tema.id, orden, superusuario.id],
+        )
+      )[0].id as string;
+    const [primera, segunda] = [await pagina(1), await pagina(2)];
+    const [archivo] = await ds.query(
+      `INSERT INTO archivos (storage_key, nombre_original, mime_type, tamano_bytes, creado_por)
+       VALUES ('materiales/2026/10/i.webp', 'i.webp', 'image/webp', 10, $1) RETURNING id`,
+      [superusuario.id],
+    );
+    const ligar = (materialId: string) =>
+      ds.query(`INSERT INTO materiales_imagenes (material_id, archivo_id, creado_por) VALUES ($1, $2, $3)`, [
+        materialId,
+        archivo.id,
+        superusuario.id,
+      ]);
+
+    await ligar(primera);
+    expect(await codigoDeError(ligar(segunda))).toBe('23505');
+    expect(await codigoDeError(ds.query('DELETE FROM archivos WHERE id = $1', [archivo.id]))).toBe('23503');
+    await ds.query('DELETE FROM materiales WHERE id = $1', [primera]);
+    expect(await ds.query('SELECT id FROM materiales_imagenes')).toEqual([]);
+  });
+
   it('deja al curso sin portada si se borra su archivo', async () => {
     const superusuario = await obtenerSuperusuario(ds);
     const curso = await crearCurso(ds);
@@ -283,8 +326,8 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
   it('rechaza un rol que no existe', async () => {
     const superusuario = await obtenerSuperusuario(ds);
     const codigo = await codigoDeError(
-      ds.query(`INSERT INTO usuarios (rol, username, password_hash, nombres, apellido_paterno, creado_por)
-                VALUES ('INVITADO', 'invitado', 'x', 'A', 'B', $1)`, [superusuario.id]),
+      ds.query(`INSERT INTO usuarios (rol, password_hash, nombres, apellido_paterno, creado_por)
+                VALUES ('INVITADO', 'x', 'A', 'B', $1)`, [superusuario.id]),
     );
     expect(codigo).toBe('23503');
   });
@@ -313,7 +356,9 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
 
   it('la migración 2 conserva los datos de la 1: prefijo provisional para las empresas y administradores sin empresa', async () => {
     const superusuario = await obtenerSuperusuario(ds);
-    // Revierte la 5, la 4, la 3 y la 2 para volver al esquema de la migracion 1
+    // Revierte de la 7 a la 2 para volver al esquema de la migracion 1
+    await ds.undoLastMigration();
+    await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
     await ds.undoLastMigration();
@@ -324,7 +369,7 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
       ]);
       await ds.query(
         `INSERT INTO usuarios (rol, empresa_id, username, password_hash, nombres, apellido_paterno, creado_por)
-         VALUES ('ADMIN', $1, 'admin_previo', 'x', 'A', 'B', $2)`,
+         VALUES ('ADMIN', $1, 'admin_previo', 'x', 'Admin', 'Previo', $2)`,
         [empresa.id, superusuario.id],
       );
     } finally {
@@ -332,8 +377,39 @@ describe('Migraciones 1 a 5: restricciones de la base', () => {
     }
 
     const [empresa] = await ds.query(`SELECT prefijo_folio FROM empresas WHERE nombre = 'Agencia previa'`);
-    expect(empresa.prefijo_folio).toBe('E001');
-    const [admin] = await ds.query(`SELECT sucursal_id FROM usuarios WHERE username = 'admin_previo'`);
-    expect(admin.sucursal_id).toBeNull();
+    //E001 es la empresa del superusuario, creada antes
+    expect(empresa.prefijo_folio).toBe('E002');
+    const [admin] = await ds.query(`SELECT sucursal_id, numero_empleado FROM usuarios WHERE nombres = 'Admin'`);
+    expect(admin).toEqual({ sucursal_id: null, numero_empleado: null });
+  });
+
+  it('la migración 6 pasa el número y la empresa de empleados a usuarios; los administradores quedan sin número', async () => {
+    const { sucursalA, empresaA } = await crearDosSucursales(ds);
+    const puesto = await crearPuesto(ds);
+    const superusuario = await obtenerSuperusuario(ds);
+    // Revierte la 7 y la 6
+    await ds.undoLastMigration();
+    await ds.undoLastMigration();
+    let empleadoId = '';
+    try {
+      const [usuario] = await ds.query(
+        `INSERT INTO usuarios (rol, sucursal_id, password_hash, nombres, apellido_paterno, creado_por)
+         VALUES ('EMPLEADO', $1, 'x', 'Luis', 'Mora', $2) RETURNING id`,
+        [sucursalA.id, superusuario.id],
+      );
+      empleadoId = usuario.id;
+      await ds.query(
+        `INSERT INTO empleados (usuario_id, empresa_id, numero_empleado, puesto_id, fecha_ingreso, creado_por)
+         VALUES ($1, $2, 'VW-9', $3, '2026-01-15', $4)`,
+        [usuario.id, empresaA.id, puesto.id, superusuario.id],
+      );
+    } finally {
+      await ds.runMigrations();
+    }
+
+    const [empleado] = await ds.query(`SELECT empresa_id, numero_empleado FROM usuarios WHERE id = $1`, [empleadoId]);
+    expect(empleado).toEqual({ empresa_id: empresaA.id, numero_empleado: 'VW-9' });
+    const sinNumero = await ds.query(`SELECT rol FROM usuarios WHERE numero_empleado IS NULL ORDER BY rol`);
+    expect(sinNumero.map((u: { rol: string }) => u.rol)).toEqual(['ADMIN', 'ADMIN', 'SUPERUSUARIO']);
   });
 });

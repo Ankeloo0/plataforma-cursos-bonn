@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import type { Tema } from '../types/contenido.types';
-import { detalleMaterial, TIPOS_MATERIAL } from '../utils/material';
+import { detalleMaterial } from '../utils/material';
 import { VisorMaterial } from './VisorMaterial';
 import styles from './VisorCurso.module.css';
 
@@ -63,22 +63,21 @@ export function VisorCurso({ temas }: { temas: Tema[] }) {
               </button>
               {desplegados.includes(i) && t.materiales.length > 0 && (
                 <ol id={`visor-materiales-${i}`} className={styles.materiales} aria-label={`Materiales del tema ${i + 1}`}>
-                  {t.materiales.map((m, j) => {
-                    const Icono = TIPOS_MATERIAL[m.tipo].icono;
-                    return (
-                      <li key={m.id}>
-                        <button
-                          type="button"
-                          className={styles.material}
-                          aria-current={i === posicion.tema && j === posicion.material ? 'true' : undefined}
-                          onClick={() => setPosicion({ tema: i, material: j })}
-                        >
-                          <Icono size={16} strokeWidth={1.75} aria-hidden="true" />
-                          <span>{m.titulo}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
+                  {t.materiales.map((m, j) => (
+                    <li key={m.id}>
+                      <button
+                        type="button"
+                        className={styles.material}
+                        aria-current={i === posicion.tema && j === posicion.material ? 'true' : undefined}
+                        onClick={() => setPosicion({ tema: i, material: j })}
+                      >
+                        <span className={`${styles.numeroMaterial} cifras-tabulares`}>
+                          {i + 1}.{j + 1}
+                        </span>{' '}
+                        <span>{m.titulo}</span>
+                      </button>
+                    </li>
+                  ))}
                 </ol>
               )}
             </li>
@@ -95,7 +94,12 @@ export function VisorCurso({ temas }: { temas: Tema[] }) {
           <p className={styles.sinMateriales}>Este tema no tiene materiales visibles.</p>
         ) : (
           <>
-            <h3 className={styles.tituloMaterial}>{material.titulo}</h3>
+            <h3 className={styles.tituloMaterial}>
+              <span className="cifras-tabulares">
+                {posicion.tema + 1}.{posicion.material + 1}
+              </span>{' '}
+              {material.titulo}
+            </h3>
             <VisorMaterial material={material} />
             <p className={`${styles.detalle} cifras-tabulares`}>
               Material {posicion.material + 1} de {tema.materiales.length} · {detalleMaterial(material)}
