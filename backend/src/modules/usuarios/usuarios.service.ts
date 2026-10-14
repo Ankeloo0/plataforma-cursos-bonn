@@ -16,12 +16,11 @@ import {
   type UsuarioConSucursal,
 } from './usuarios.repository.js';
 
-// El empleado no tiene usuario: entra con su empresa y su numero de empleado (D-34)
-export type DatosNuevoUsuario = Omit<CrearCuentaDto, 'username'> &
-  (
-    | { rol: typeof ROLES.ADMIN; username: string; sucursalId?: undefined }
-    | { rol: typeof ROLES.EMPLEADO; sucursalId: string; username?: undefined }
-  );
+//la empresa del empleado es la de su sucursal
+export type DatosNuevoUsuario = CrearCuentaDto & { empresaId: string } & (
+  | { rol: typeof ROLES.ADMIN; sucursalId?: undefined }
+  | { rol: typeof ROLES.EMPLEADO; sucursalId: string }
+);
 
 const USUARIO_NO_ENCONTRADO = { message: 'El usuario no existe.', code: 'USUARIO_NO_ENCONTRADO' };
 
@@ -37,7 +36,8 @@ export class UsuariosService {
     return this.usuariosRepository.crear({
       rol: datos.rol,
       sucursalId: datos.sucursalId ?? null,
-      username: datos.username ?? null,
+      empresaId: datos.empresaId,
+      numeroEmpleado: datos.numeroEmpleado,
       passwordHash: await bcrypt.hash(datos.passwordTemporal, BCRYPT_COSTO),
       nombres: datos.nombres,
       apellidoPaterno: datos.apellidoPaterno,
@@ -51,12 +51,8 @@ export class UsuariosService {
     return this.usuariosRepository.guardar(usuario, manager);
   }
 
-  buscarParaLogin(username: string): Promise<UsuarioConSucursal | null> {
-    return this.usuariosRepository.buscarPorUsernameConSucursal(username);
-  }
-
-  buscarEmpleadoParaLogin(empresaId: string, numeroEmpleado: string): Promise<UsuarioConSucursal | null> {
-    return this.usuariosRepository.buscarEmpleadoParaLogin(empresaId, numeroEmpleado);
+  buscarParaLogin(empresaId: string, numeroEmpleado: string): Promise<UsuarioConSucursal | null> {
+    return this.usuariosRepository.buscarParaLogin(empresaId, numeroEmpleado);
   }
 
   buscarConSucursal(id: string): Promise<UsuarioConSucursal | null> {
@@ -124,12 +120,25 @@ export class UsuariosService {
     return usuario;
   }
 
-  async actualizarCuenta(id: string, datos: ActualizarCuentaDto, actor: UsuarioSesion): Promise<Usuario> {
+  //la empresa solo cambia aqui en administradores; la del empleado sigue a su sucursal
+  async actualizarCuenta(
+    id: string,
+    datos: ActualizarCuentaDto & { empresaId?: string },
+    actor: UsuarioSesion,
+  ): Promise<Usuario> {
     const usuario = await this.obtenerGestionable(id, actor);
     if (datos.nombres !== undefined) usuario.nombres = datos.nombres;
     if (datos.apellidoPaterno !== undefined) usuario.apellidoPaterno = datos.apellidoPaterno;
     if (datos.apellidoMaterno !== undefined) usuario.apellidoMaterno = datos.apellidoMaterno;
-    if (datos.username !== undefined && usuario.rol !== ROLES.EMPLEADO) usuario.username = datos.username;
+    if (datos.numeroEmpleado !== undefined) usuario.numeroEmpleado = datos.numeroEmpleado;
+    if (datos.empresaId !== undefined && usuario.rol !== ROLES.EMPLEADO) usuario.empresaId = datos.empresaId;
+    //un administrador anterior a los numeros recibe los dos datos juntos
+    if ((usuario.empresaId === null) !== (usuario.numeroEmpleado === null)) {
+      throw new UnprocessableEntityException({
+        message: 'Elige la empresa y escribe el número de empleado.',
+        code: 'NUMERO_SIN_EMPRESA',
+      });
+    }
     usuario.actualizadoPor = actor.id;
     return this.usuariosRepository.guardar(usuario);
   }

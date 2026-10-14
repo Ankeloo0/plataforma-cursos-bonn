@@ -9,7 +9,7 @@ describe('auth.store', () => {
   it('con una cookie válida queda con sesión; sin ella, sin sesión', async () => {
     vi.spyOn(authService, 'obtenerSesion').mockResolvedValueOnce(perfil());
     await useAuthStore.getState().verificarSesion();
-    expect(useAuthStore.getState()).toMatchObject({ estado: 'con-sesion', usuario: { username: 'jperez' } });
+    expect(useAuthStore.getState()).toMatchObject({ estado: 'con-sesion', usuario: { numeroEmpleado: 'A-100' } });
 
     vi.spyOn(authService, 'obtenerSesion').mockRejectedValueOnce({ statusCode: 401 });
     await useAuthStore.getState().verificarSesion();

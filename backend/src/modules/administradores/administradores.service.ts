@@ -2,11 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { ROLES } from '../../common/constants/roles.js';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto.js';
 import type { UsuarioSesion } from '../../common/interfaces/usuario-sesion.interface.js';
+import { EmpresasService } from '../empresas/empresas.service.js';
 import { AlcanceService } from '../usuarios/alcance.service.js';
-import type { ActualizarCuentaDto, CrearCuentaDto } from '../usuarios/dto/datos-cuenta.dto.js';
 import { UsuarioResponseDto } from '../usuarios/dto/usuario-response.dto.js';
 import { UsuariosService } from '../usuarios/usuarios.service.js';
-import type { AccesoAdministradorDto, QueryAdministradoresDto } from './dto/administrador.dto.js';
+import type {
+  AccesoAdministradorDto,
+  ActualizarAdministradorDto,
+  CrearAdministradorDto,
+  QueryAdministradoresDto,
+} from './dto/administrador.dto.js';
 import { AdministradorDetalleDto, AdministradorResumenDto } from './dto/administrador-response.dto.js';
 
 // Solo el superusuario crea administradores y decide sus permisos y sucursales (P-49, D-28)
@@ -15,6 +20,7 @@ export class AdministradoresService {
   constructor(
     private readonly usuariosService: UsuariosService,
     private readonly alcanceService: AlcanceService,
+    private readonly empresasService: EmpresasService,
   ) {}
 
   async listar(filtros: QueryAdministradoresDto): Promise<PaginatedResponseDto<AdministradorResumenDto>> {
@@ -28,14 +34,16 @@ export class AdministradoresService {
   }
 
   // Nace sin permisos ni sucursales (RF-00.2)
-  async crear(datos: CrearCuentaDto, actorId: string): Promise<UsuarioResponseDto> {
+  async crear(datos: CrearAdministradorDto, actorId: string): Promise<UsuarioResponseDto> {
+    await this.empresasService.exigirActiva(datos.empresaId);
     const administrador = await this.usuariosService.crear(
       {
         rol: ROLES.ADMIN,
         nombres: datos.nombres,
         apellidoPaterno: datos.apellidoPaterno,
         apellidoMaterno: datos.apellidoMaterno,
-        username: datos.username,
+        empresaId: datos.empresaId,
+        numeroEmpleado: datos.numeroEmpleado,
         passwordTemporal: datos.passwordTemporal,
       },
       actorId,
@@ -45,15 +53,20 @@ export class AdministradoresService {
 
   async obtener(id: string): Promise<AdministradorDetalleDto> {
     const administrador = await this.usuariosService.obtenerAdministrador(id);
-    const [permisos, sucursales] = await Promise.all([
+    const [permisos, sucursales, empresa] = await Promise.all([
       this.alcanceService.permisosDe(id),
       this.alcanceService.sucursalesDe(id),
+      administrador.empresaId ? this.empresasService.buscar(administrador.empresaId) : null,
     ]);
-    return AdministradorDetalleDto.detalle(administrador, permisos, sucursales);
+    const referencia = empresa ? { id: empresa.id, nombre: empresa.nombre } : null;
+    return AdministradorDetalleDto.detalle(administrador, referencia, permisos, sucursales);
   }
 
-  async actualizar(id: string, datos: ActualizarCuentaDto, actor: UsuarioSesion): Promise<UsuarioResponseDto> {
-    await this.usuariosService.obtenerAdministrador(id);
+  async actualizar(id: string, datos: ActualizarAdministradorDto, actor: UsuarioSesion): Promise<UsuarioResponseDto> {
+    const administrador = await this.usuariosService.obtenerAdministrador(id);
+    if (datos.empresaId !== undefined && datos.empresaId !== administrador.empresaId) {
+      await this.empresasService.exigirActiva(datos.empresaId);
+    }
     return UsuarioResponseDto.desde(await this.usuariosService.actualizarCuenta(id, datos, actor));
   }
 

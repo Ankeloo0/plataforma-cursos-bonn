@@ -5,8 +5,9 @@ export class UsuarioResponseDto {
   id: string;
   rol: string;
   sucursalId: string | null;
-  // null para el empleado
-  username: string | null;
+  // null en administradores y superusuario que aun no tienen numero
+  empresaId: string | null;
+  numeroEmpleado: string | null;
   nombres: string;
   apellidoPaterno: string;
   apellidoMaterno: string | null;
@@ -30,7 +31,8 @@ export function datosUsuario(usuario: Usuario) {
     id: usuario.id,
     rol: usuario.rol,
     sucursalId: usuario.sucursalId,
-    username: usuario.username,
+    empresaId: usuario.empresaId,
+    numeroEmpleado: usuario.numeroEmpleado,
     nombres: usuario.nombres,
     apellidoPaterno: usuario.apellidoPaterno,
     apellidoMaterno: usuario.apellidoMaterno,

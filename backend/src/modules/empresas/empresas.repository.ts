@@ -49,6 +49,14 @@ export class EmpresasRepository {
     return this.repo.find({ where: { activo: true }, order: { nombre: 'ASC' } });
   }
 
+  async esDelSuperusuario(id: string): Promise<boolean> {
+    const filas: unknown[] = await this.repo.query(
+      `SELECT 1 FROM usuarios WHERE rol = 'SUPERUSUARIO' AND empresa_id = $1`,
+      [id],
+    );
+    return filas.length > 0;
+  }
+
   buscarPorId(id: string): Promise<Empresa | null> {
     return this.repo.findOneBy({ id });
   }

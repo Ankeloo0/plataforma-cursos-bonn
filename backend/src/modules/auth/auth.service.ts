@@ -20,17 +20,11 @@ export interface SesionIniciada {
 // y no se pueda saber por el tiempo si un usuario existe (RN-01.6)
 const HASH_FALSO = '$2b$12$/dDz6F.6KtPc1VXpDr/TJe/22ckPwRoOERXYQQeRTKDGR2forC.f2';
 
-// Ninguno de los dos mensajes dice que dato fallo (RN-01.6)
+// El mensaje no dice que dato fallo (RN-01.6)
 const CREDENCIALES_INVALIDAS = {
-  message: 'Usuario o contraseña incorrectos.',
-  code: 'CREDENCIALES_INVALIDAS',
-};
-const CREDENCIALES_EMPLEADO_INVALIDAS = {
   message: 'Empresa, número de empleado o contraseña incorrectos.',
   code: 'CREDENCIALES_INVALIDAS',
 };
-
-type ErrorCredenciales = typeof CREDENCIALES_INVALIDAS;
 
 @Injectable()
 export class AuthService {
@@ -47,15 +41,9 @@ export class AuthService {
     this.minutosBloqueo = config.get<number>('auth.loginBloqueoMinutos') ?? 15;
   }
 
-  // Administrador y superusuario
-  async login(username: string, password: string): Promise<SesionIniciada> {
-    return this.verificar(await this.usuariosService.buscarParaLogin(username), password, CREDENCIALES_INVALIDAS);
-  }
-
-  // Empleado: el numero de empleado solo es unico dentro de su empresa (D-34)
-  async loginEmpleado(empresaId: string, numeroEmpleado: string, password: string): Promise<SesionIniciada> {
-    const encontrado = await this.usuariosService.buscarEmpleadoParaLogin(empresaId, numeroEmpleado);
-    return this.verificar(encontrado, password, CREDENCIALES_EMPLEADO_INVALIDAS);
+  //los tres roles; el numero de empleado solo es unico dentro de su empresa
+  async login(empresaId: string, numeroEmpleado: string, password: string): Promise<SesionIniciada> {
+    return this.verificar(await this.usuariosService.buscarParaLogin(empresaId, numeroEmpleado), password);
   }
 
   async cambiarPassword(sesion: UsuarioSesion, actual: string, nueva: string): Promise<SesionIniciada> {
@@ -79,14 +67,10 @@ export class AuthService {
     };
   }
 
-  private async verificar(
-    encontrado: UsuarioConSucursal | null,
-    password: string,
-    credencialesInvalidas: ErrorCredenciales,
-  ): Promise<SesionIniciada> {
+  private async verificar(encontrado: UsuarioConSucursal | null, password: string): Promise<SesionIniciada> {
     if (!encontrado) {
       await bcrypt.compare(password, HASH_FALSO);
-      throw new UnauthorizedException(credencialesInvalidas);
+      throw new UnauthorizedException(CREDENCIALES_INVALIDAS);
     }
 
     const { usuario } = encontrado;
@@ -103,12 +87,12 @@ export class AuthService {
 
     if (!(await bcrypt.compare(password, usuario.passwordHash))) {
       await this.usuariosService.registrarIntentoFallido(usuario.id, this.maxIntentos, this.minutosBloqueo);
-      throw new UnauthorizedException(credencialesInvalidas);
+      throw new UnauthorizedException(CREDENCIALES_INVALIDAS);
     }
 
-    // Cuenta inactiva, o empleado de una sucursal o empresa inactiva: el mismo mensaje generico (RN-01.2)
+    // Cuenta inactiva, empresa inactiva o empleado de una sucursal inactiva: el mismo mensaje generico (RN-01.2)
     if (!puedeEntrar(encontrado)) {
-      throw new UnauthorizedException(credencialesInvalidas);
+      throw new UnauthorizedException(CREDENCIALES_INVALIDAS);
     }
 
     await this.usuariosService.registrarAccesoExitoso(usuario.id);
@@ -123,9 +107,9 @@ export class AuthService {
   }
 }
 
-// Desactivar una sucursal o una empresa solo bloquea a sus empleados (RN-00.3, RN-00.8)
-function puedeEntrar({ usuario, sucursal }: UsuarioConSucursal): boolean {
-  if (!usuario.activo) return false;
+// Desactivar una empresa bloquea a todos los registrados en ella; una sucursal, solo a sus empleados (RN-00.3, RN-00.8)
+function puedeEntrar({ usuario, empresa, sucursal }: UsuarioConSucursal): boolean {
+  if (!usuario.activo || !empresa?.activo) return false;
   if (usuario.rol !== ROLES.EMPLEADO) return true;
-  return sucursal !== null && sucursal.activo && sucursal.empresa.activo;
+  return sucursal !== null && sucursal.activo;
 }

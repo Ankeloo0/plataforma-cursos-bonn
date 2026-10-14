@@ -21,10 +21,14 @@ import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator.
 import type { PaginatedResponseDto } from '../../common/dto/paginated-response.dto.js';
 import type { UsuarioSesion } from '../../common/interfaces/usuario-sesion.interface.js';
 import { FOTO_TAMANO_MAXIMO_BYTES } from '../archivos/archivos.service.js';
-import { ActualizarCuentaDto, CrearCuentaDto } from '../usuarios/dto/datos-cuenta.dto.js';
 import type { UsuarioResponseDto } from '../usuarios/dto/usuario-response.dto.js';
 import { AdministradoresService } from './administradores.service.js';
-import { AccesoAdministradorDto, QueryAdministradoresDto } from './dto/administrador.dto.js';
+import {
+  AccesoAdministradorDto,
+  ActualizarAdministradorDto,
+  CrearAdministradorDto,
+  QueryAdministradoresDto,
+} from './dto/administrador.dto.js';
 import { AdministradorResumenDto, type AdministradorDetalleDto } from './dto/administrador-response.dto.js';
 import type { CatalogoPermisosDto } from './dto/catalogo-permisos.dto.js';
 
@@ -49,7 +53,7 @@ export class AdministradoresController {
 
   @ApiOperation({ summary: 'Crear un administrador', description: 'Nace sin permisos ni sucursales, con contraseña temporal. RF-00.2.' })
   @Post('administradores')
-  crear(@Body() dto: CrearCuentaDto, @UsuarioActual('id') actorId: string): Promise<UsuarioResponseDto> {
+  crear(@Body() dto: CrearAdministradorDto, @UsuarioActual('id') actorId: string): Promise<UsuarioResponseDto> {
     return this.administradoresService.crear(dto, actorId);
   }
 
@@ -63,7 +67,7 @@ export class AdministradoresController {
   @Patch('administradores/:id')
   actualizar(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ActualizarCuentaDto,
+    @Body() dto: ActualizarAdministradorDto,
     @UsuarioActual() actor: UsuarioSesion,
   ): Promise<UsuarioResponseDto> {
     return this.administradoresService.actualizar(id, dto, actor);

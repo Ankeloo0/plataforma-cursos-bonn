@@ -17,7 +17,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 // Campo de formulario (design-reference.md 8.2): fondo gris claro y linea inferior,
 // la forma del sitio de referencia reforzada para uso administrativo.
 //
-// `required` agrega el asterisco. Funciona con react-hook-form: `<Input {...register('username')} />`.
+// `required` agrega el asterisco. Funciona con react-hook-form: `<Input {...register('numeroEmpleado')} />`.
 export function Input({
   etiqueta,
   ayuda,

@@ -12,7 +12,7 @@ import {
   obtenerSuperusuario,
   PASSWORD_PRUEBA,
 } from './e2e/fabricas.js';
-import { iniciarSesion, iniciarSesionEmpleado } from './e2e/sesion.js';
+import { iniciarSesion } from './e2e/sesion.js';
 
 describe('Empleados (HU-09 a HU-13)', () => {
   let e2e: AppE2e;
@@ -25,7 +25,7 @@ describe('Empleados (HU-09 a HU-13)', () => {
 
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)).username);
+    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)));
   });
 
   afterAll(async () => {
@@ -37,7 +37,7 @@ describe('Empleados (HU-09 a HU-13)', () => {
   async function escenario() {
     const base = await crearDosSucursales(e2e.dataSource);
     const puesto = await crearPuesto(e2e.dataSource, { nombre: 'Asesor de servicio' });
-    const cookieA = await iniciarSesion(e2e.app, base.adminA.username);
+    const cookieA = await iniciarSesion(e2e.app, base.adminA);
     return { ...base, puesto, cookieA };
   }
 
@@ -55,8 +55,8 @@ describe('Empleados (HU-09 a HU-13)', () => {
   }
 
   describe('Alta (HU-09)', () => {
-    it('crea la cuenta sin usuario y los datos laborales; el empleado entra con su empresa y su número (RF-03.1, D-34)', async () => {
-      const { sucursalA, empresaA, adminA, puesto, cookieA } = await escenario();
+    it('crea la cuenta con su número y los datos laborales; el empleado entra con su empresa y su número (RF-03.1)', async () => {
+      const { sucursalA, empresaA, puesto, cookieA } = await escenario();
 
       const creado = await http().post('/api/v1/empleados').set('Cookie', cookieA).send(datosAlta(sucursalA.id, puesto.id)).expect(201);
       expect(creado.body).toMatchObject({
@@ -69,16 +69,18 @@ describe('Empleados (HU-09 a HU-13)', () => {
         area: { id: puesto.areaId },
         sucursal: { id: sucursalA.id },
         empresa: { id: empresaA.id },
-        creadoPor: `${adminA.username} Usuario Pruebas`,
+        creadoPor: 'Usuario Pruebas',
         actualizadoPor: null,
       });
       expect(JSON.stringify(creado.body)).not.toMatch(/passwordHash|password_hash|passwordTemporal|Temporal2026/i);
 
-      const [usuario] = await e2e.dataSource.query('SELECT username, rol FROM usuarios WHERE id = $1', [creado.body.usuarioId]);
-      expect(usuario).toEqual({ username: null, rol: 'EMPLEADO' });
+      const [usuario] = await e2e.dataSource.query('SELECT empresa_id, numero_empleado, rol FROM usuarios WHERE id = $1', [
+        creado.body.usuarioId,
+      ]);
+      expect(usuario).toEqual({ empresa_id: empresaA.id, numero_empleado: '1024', rol: 'EMPLEADO' });
 
       const login = await http()
-        .post('/api/v1/auth/login-empleado')
+        .post('/api/v1/auth/login')
         .send({ empresaId: empresaA.id, numeroEmpleado: '1024', password: 'Temporal2026' })
         .expect(200);
       expect(login.body).toMatchObject({ rol: 'EMPLEADO', debeCambiarPassword: true });
@@ -113,12 +115,12 @@ describe('Empleados (HU-09 a HU-13)', () => {
       expect(puesto.body.code).toBe('PUESTO_INACTIVO');
     });
 
-    it('valida los datos y rechaza campos que no existen, como username o creadoPor', async () => {
+    it('valida los datos y rechaza campos que no existen, como empresaId o creadoPor', async () => {
       const { sucursalA, puesto, cookieA } = await escenario();
       const enviar = (cambios: Record<string, unknown>) =>
         http().post('/api/v1/empleados').set('Cookie', cookieA).send(datosAlta(sucursalA.id, puesto.id, cambios));
 
-      await enviar({ username: 'aruiz' }).expect(400);
+      await enviar({ empresaId: sucursalA.empresaId }).expect(400);
       await enviar({ creadoPor: sucursalA.id }).expect(400);
       await enviar({ fechaIngreso: '2026-02-30' }).expect(400);
       await enviar({ numeroEmpleado: 'número con espacios' }).expect(400);
@@ -168,7 +170,7 @@ describe('Empleados (HU-09 a HU-13)', () => {
       const { sucursalA, puesto } = await escenario();
       const lector = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.EMPLEADOS_VER], sucursalIds: [sucursalA.id] });
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-      const cookie = await iniciarSesion(e2e.app, lector.username);
+      const cookie = await iniciarSesion(e2e.app, lector);
 
       await http().get('/api/v1/empleados').set('Cookie', cookie).expect(200);
       await http().post('/api/v1/empleados').set('Cookie', cookie).send(datosAlta(sucursalA.id, puesto.id)).expect(403);
@@ -178,7 +180,7 @@ describe('Empleados (HU-09 a HU-13)', () => {
 
   describe('Edición y traslado (HU-10)', () => {
     it('edita datos, número y puesto, y registra quién lo modificó (RF-03.3, RF-03.6)', async () => {
-      const { sucursalA, adminA, cookieA } = await escenario();
+      const { sucursalA, cookieA } = await escenario();
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
       const nuevoPuesto = await crearPuesto(e2e.dataSource, { nombre: 'Jefe de taller' });
 
@@ -192,7 +194,7 @@ describe('Empleados (HU-09 a HU-13)', () => {
         apellidoMaterno: null,
         numeroEmpleado: 'A-500',
         puesto: { id: nuevoPuesto.id, nombre: 'Jefe de taller' },
-        actualizadoPor: `${adminA.username} Usuario Pruebas`,
+        actualizadoPor: 'Usuario Pruebas',
       });
     });
 
@@ -245,11 +247,11 @@ describe('Empleados (HU-09 a HU-13)', () => {
       const credenciales = { empresaId: empleado.empresaId, numeroEmpleado: empleado.numeroEmpleado };
 
       await http().post(`/api/v1/usuarios/${empleado.id}/restablecer-password`).set('Cookie', cookieA).send({ passwordTemporal: 'Reinicio2026' }).expect(200);
-      const login = await http().post('/api/v1/auth/login-empleado').send({ ...credenciales, password: 'Reinicio2026' }).expect(200);
+      const login = await http().post('/api/v1/auth/login').send({ ...credenciales, password: 'Reinicio2026' }).expect(200);
       expect(login.body.debeCambiarPassword).toBe(true);
 
       await http().post(`/api/v1/usuarios/${empleado.id}/desactivar`).set('Cookie', cookieA).expect(200);
-      await http().post('/api/v1/auth/login-empleado').send({ ...credenciales, password: 'Reinicio2026' }).expect(401);
+      await http().post('/api/v1/auth/login').send({ ...credenciales, password: 'Reinicio2026' }).expect(401);
       const ficha = await http().get(`/api/v1/empleados/${empleado.empleadoId}`).set('Cookie', cookieA).expect(200);
       expect(ficha.body.activo).toBe(false);
     });
@@ -273,17 +275,17 @@ describe('Empleados (HU-09 a HU-13)', () => {
     it('el empleado entra y ve su sesión, pero no las rutas de administración', async () => {
       const { sucursalA } = await escenario();
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-      const cookie = await iniciarSesionEmpleado(e2e.app, empleado);
+      const cookie = await iniciarSesion(e2e.app, empleado);
 
       const me = await http().get('/api/v1/auth/me').set('Cookie', cookie).expect(200);
-      expect(me.body).toMatchObject({ rol: 'EMPLEADO', sucursal: { id: sucursalA.id }, empleado: { numeroEmpleado: empleado.numeroEmpleado } });
+      expect(me.body).toMatchObject({ rol: 'EMPLEADO', numeroEmpleado: empleado.numeroEmpleado, sucursal: { id: sucursalA.id } });
       await http().get('/api/v1/empleados').set('Cookie', cookie).expect(403);
     });
 
     it('con contraseña temporal, el empleado solo puede cambiarla', async () => {
       const { sucursalA } = await escenario();
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id, debeCambiarPassword: true });
-      const cookie = await iniciarSesionEmpleado(e2e.app, empleado);
+      const cookie = await iniciarSesion(e2e.app, empleado);
 
       await http().get('/api/v1/perfil').set('Cookie', cookie).expect(403);
       await http()

@@ -1,3 +1,4 @@
+import Image from '@tiptap/extension-image';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {
@@ -5,6 +6,7 @@ import {
   CircleAlert,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   Link as IconoEnlace,
   List,
@@ -16,18 +18,20 @@ import {
 import { useId, useState, type KeyboardEvent } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { contarPalabras, resumenLectura } from '../utils/material';
+import { contarPalabras, PAGINA_MAXIMO_IMAGENES, resumenLectura } from '../utils/material';
 import styles from './EditorArticulo.module.css';
+import { InsertarImagen } from './InsertarImagen';
 
 export interface PropsEditorArticulo {
   valorInicial: string;
-  // HTML vacio ('') si el articulo no tiene texto
+  // HTML vacio ('') si la pagina no tiene texto ni imagenes
   alCambiar: (html: string) => void;
   error?: string;
 }
 
-// Solo el formato de RF-04.4: parrafos, dos niveles de subtitulo, negrita, cursiva, listas, enlaces y citas.
-// Lo que no esta aqui (tablas, codigo, imagenes) se pierde al pegar. La API vuelve a limpiar el HTML.
+// Solo el formato de RF-04.4: parrafos, dos niveles de subtitulo, negrita, cursiva, listas, enlaces, citas
+// e imagenes subidas a la plataforma (D-39). Lo demas (tablas, codigo, imagenes de otros sitios) se pierde
+// al pegar. La API vuelve a limpiar el HTML.
 const EXTENSIONES = [
   StarterKit.configure({
     heading: { levels: [2, 3] },
@@ -38,12 +42,22 @@ const EXTENSIONES = [
     underline: false,
     link: { openOnClick: false, autolink: true, defaultProtocol: 'https' },
   }),
+  //al pegar solo se reconocen imagenes de la plataforma
+  Image.extend({ parseHTML: () => [{ tag: 'img[src^="/api/v1/archivos/"]' }] }).configure({ allowBase64: false }),
 ];
 
 const DIRECCION_VALIDA = /^https?:\/\/\S+$/i;
 
 // Con un espacio entre bloques, para no juntar la ultima palabra de un parrafo con la primera del siguiente
 const palabrasDe = (editor: Editor) => contarPalabras(editor.getText({ blockSeparator: ' ' }));
+
+const imagenesDe = (editor: Editor) => {
+  let total = 0;
+  editor.state.doc.descendants((nodo) => {
+    if (nodo.type.name === 'image') total += 1;
+  });
+  return total;
+};
 
 interface Formato {
   etiqueta: string;
@@ -94,11 +108,12 @@ const FORMATOS: Formato[][] = [
   ],
 ];
 
-// Editor de articulos (RF-04.4, D-37) con TipTap. data-panel-amplio ensancha el panel lateral a 720 px.
+// Editor de paginas (RF-04.4, D-37, D-39) con TipTap. data-panel-amplio ensancha el panel lateral a 720 px.
 export function EditorArticulo({ valorInicial, alCambiar, error }: PropsEditorArticulo) {
   const idEtiqueta = useId();
   const idError = useId();
   const [enlace, setEnlace] = useState<{ direccion: string; error?: string } | null>(null);
+  const [insertandoImagen, setInsertandoImagen] = useState(false);
 
   const editor = useEditor({
     extensions: EXTENSIONES,
@@ -113,11 +128,24 @@ export function EditorArticulo({ valorInicial, alCambiar, error }: PropsEditorAr
         'aria-labelledby': idEtiqueta,
       },
     },
-    onUpdate: ({ editor: e }) => alCambiar(palabrasDe(e) === 0 ? '' : e.getHTML()),
+    onUpdate: ({ editor: e }) => alCambiar(palabrasDe(e) === 0 && imagenesDe(e) === 0 ? '' : e.getHTML()),
   });
   const palabras = palabrasDe(editor);
+  const imagenes = imagenesDe(editor);
+  const sinLugarParaImagenes = imagenes >= PAGINA_MAXIMO_IMAGENES;
+
+  function abrirImagen() {
+    setEnlace(null);
+    setInsertandoImagen(true);
+  }
+
+  function insertarImagen(src: string, alt: string) {
+    editor.chain().focus().setImage({ src, alt }).run();
+    setInsertandoImagen(false);
+  }
 
   function abrirEnlace() {
+    setInsertandoImagen(false);
     setEnlace({ direccion: (editor.getAttributes('link').href as string | undefined) ?? 'https://' });
   }
 
@@ -163,7 +191,7 @@ export function EditorArticulo({ valorInicial, alCambiar, error }: PropsEditorAr
       </span>
 
       <div className={styles.marco} aria-invalid={error ? true : undefined}>
-        <div className={styles.barra} role="toolbar" aria-label="Formato del artículo">
+        <div className={styles.barra} role="toolbar" aria-label="Formato de la página">
           {FORMATOS.map((grupo, indice) => (
             <div key={indice} className={styles.grupo}>
               {grupo.map(({ etiqueta, icono: Icono, activo, aplicar }) => (
@@ -193,8 +221,21 @@ export function EditorArticulo({ valorInicial, alCambiar, error }: PropsEditorAr
             >
               <IconoEnlace size={18} strokeWidth={1.75} aria-hidden="true" />
             </button>
+            <button
+              type="button"
+              className={styles.boton}
+              aria-label="Imagen"
+              title={sinLugarParaImagenes ? `Una página puede tener hasta ${PAGINA_MAXIMO_IMAGENES} imágenes` : 'Imagen'}
+              aria-expanded={insertandoImagen}
+              disabled={sinLugarParaImagenes}
+              onClick={abrirImagen}
+            >
+              <ImagePlus size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
           </div>
         </div>
+
+        {insertandoImagen && <InsertarImagen alInsertar={insertarImagen} alCerrar={() => setInsertandoImagen(false)} />}
 
         {enlace && (
           <div className={styles.enlace}>
@@ -229,6 +270,7 @@ export function EditorArticulo({ valorInicial, alCambiar, error }: PropsEditorAr
 
         <p className={styles.resumen} aria-live="polite">
           {resumenLectura(palabras)}
+          {imagenes > 0 && ` · ${imagenes} ${imagenes === 1 ? 'imagen' : 'imágenes'}`}
         </p>
       </div>
 

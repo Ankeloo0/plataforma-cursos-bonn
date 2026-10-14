@@ -75,8 +75,8 @@
   border-radius: var(--radio-sm);
 }
 
-.iconoTipo {
-  flex-shrink: 0;
+.numeroMaterial {
+  margin-right: var(--esp-1);
   color: var(--texto-secundario);
 }
 

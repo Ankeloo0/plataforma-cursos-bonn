@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { conSesion } from '../../../test/sesion';
+import { authService } from '../../auth/services/auth.service';
 import { sucursalesService } from '../../empresas/services/sucursales.service';
 import type { Sucursal } from '../../empresas/types/empresas.types';
 import { administradoresService } from '../services/administradores.service';
@@ -11,7 +12,8 @@ import { AdministradoresPage } from './AdministradoresPage';
 const cuenta = {
   id: 'a1',
   rol: 'ADMIN',
-  username: 'jperez',
+  empresaId: 'e1',
+  numeroEmpleado: 'A-100',
   nombres: 'Juan',
   apellidoPaterno: 'Pérez',
   apellidoMaterno: null,
@@ -26,12 +28,19 @@ const cuenta = {
 
 const resumen = (datos: Partial<AdministradorResumen> = {}): AdministradorResumen => ({
   ...cuenta,
+  empresa: { id: 'e1', nombre: 'Grupo Bonn' },
   totalPermisos: 3,
   totalSucursales: 2,
   ...datos,
 });
 
-const detalle = (datos: Partial<AdministradorDetalle> = {}): AdministradorDetalle => ({ ...cuenta, permisos: [], sucursales: [], ...datos });
+const detalle = (datos: Partial<AdministradorDetalle> = {}): AdministradorDetalle => ({
+  ...cuenta,
+  empresa: { id: 'e1', nombre: 'Grupo Bonn' },
+  permisos: [],
+  sucursales: [],
+  ...datos,
+});
 
 const catalogo: CatalogoPermisos = {
   permisos: [
@@ -72,16 +81,47 @@ describe('Administradores y permisos', () => {
   beforeEach(() => conSesion({ rol: 'SUPERUSUARIO', sucursales: [] }));
   afterEach(() => vi.restoreAllMocks());
 
-  it('lista los administradores con un resumen de su acceso', async () => {
+  it('lista los administradores con su número, su empresa y un resumen de su acceso', async () => {
     vi.spyOn(administradoresService, 'listar').mockResolvedValue({
-      data: [resumen(), resumen({ id: 'a2', nombres: 'Ana', username: 'aruiz', totalPermisos: 0, totalSucursales: 0 })],
+      data: [
+        resumen(),
+        resumen({ id: 'a2', nombres: 'Ana', empresaId: null, numeroEmpleado: null, empresa: null, totalPermisos: 0, totalSucursales: 0 }),
+      ],
       meta: { page: 1, limit: 20, total: 2, totalPages: 1 },
     });
     abrir('/administradores');
 
     const fila = (await screen.findByRole('link', { name: 'Juan Pérez' })).closest('tr')!;
     expect(within(fila).getByText('3 permisos · 2 sucursales')).toBeInTheDocument();
-    expect(within(screen.getByRole('link', { name: 'Ana Pérez' }).closest('tr')!).getByText('Sin permisos')).toBeInTheDocument();
+    expect(within(fila).getByText('No. A-100')).toBeInTheDocument();
+    expect(fila).toHaveTextContent('Grupo Bonn');
+    const filaAna = screen.getByRole('link', { name: 'Ana Pérez' }).closest('tr')!;
+    expect(within(filaAna).getByText('Sin permisos')).toBeInTheDocument();
+    expect(within(filaAna).getByText('Sin número de empleado')).toBeInTheDocument();
+  });
+
+  it('da de alta con empresa y número de empleado, que son sus datos de acceso', async () => {
+    vi.spyOn(administradoresService, 'listar').mockResolvedValue({ data: [resumen()], meta: { page: 1, limit: 20, total: 1, totalPages: 1 } });
+    vi.spyOn(authService, 'listarEmpresas').mockResolvedValue([
+      { id: 'e1', nombre: 'Grupo Bonn' },
+      { id: 'e2', nombre: 'Grupo Bonn Dorada' },
+    ]);
+    vi.spyOn(administradoresService, 'obtener').mockResolvedValue(detalle({ id: 'a9' }));
+    vi.spyOn(administradoresService, 'catalogo').mockResolvedValue(catalogo);
+    vi.spyOn(sucursalesService, 'listarEnAlcance').mockResolvedValue([]);
+    const crear = vi.spyOn(administradoresService, 'crear').mockResolvedValue({ ...cuenta, id: 'a9' });
+    abrir('/administradores');
+
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Nuevo administrador' }))[0]);
+    fireEvent.change(await screen.findByLabelText(/^Nombres/), { target: { value: 'Luis' } });
+    fireEvent.change(screen.getByLabelText(/^Apellido paterno/), { target: { value: 'Mora' } });
+    fireEvent.change(screen.getByLabelText(/^Empresa/), { target: { value: 'e2' } });
+    fireEvent.change(screen.getByLabelText(/^Número de empleado/), { target: { value: 'D-7' } });
+    fireEvent.change(screen.getByLabelText(/^Contraseña temporal/), { target: { value: 'Temporal2026' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crear administrador' }));
+
+    await screen.findByText(/no puede hacer nada todavía/);
+    expect(crear).toHaveBeenCalledWith(expect.objectContaining({ empresaId: 'e2', numeroEmpleado: 'D-7', passwordTemporal: 'Temporal2026' }));
   });
 
   it('un administrador nuevo empieza sin permisos y la pantalla lo avisa', async () => {

@@ -25,7 +25,7 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
 
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)).username);
+    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)));
   });
 
   afterAll(async () => {
@@ -37,7 +37,7 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
   async function creadorConCurso(permisos: Permiso[] = [PERMISOS.CURSOS_GESTIONAR]) {
     const { sucursalA } = await crearDosSucursales(e2e.dataSource);
     const admin = await crearAdministrador(e2e.dataSource, { permisos, sucursalIds: [sucursalA.id] });
-    const cookie = await iniciarSesion(e2e.app, admin.username);
+    const cookie = await iniciarSesion(e2e.app, admin);
     const curso = await http()
       .post('/api/v1/cursos')
       .set('Cookie', superCookie)
@@ -144,7 +144,7 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
       expect((await crear({ tipo: 'VIDEO', titulo: 'Video', archivoId: pdf.body.id }).expect(422)).body.code).toBe('ARCHIVO_TIPO_NO_COINCIDE');
 
       const otro = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_GESTIONAR], sucursalIds: [sucursalA.id] });
-      const ajeno = await subir(await iniciarSesion(e2e.app, otro.username), pdfConTexto('Ajeno'), 'b.pdf').expect(201);
+      const ajeno = await subir(await iniciarSesion(e2e.app, otro), pdfConTexto('Ajeno'), 'b.pdf').expect(201);
       expect((await crear({ tipo: 'PDF', titulo: 'Ajeno', archivoId: ajeno.body.id }).expect(422)).body.code).toBe('ARCHIVO_NO_DISPONIBLE');
 
       await crear({ tipo: 'PDF', titulo: 'Primero', archivoId: pdf.body.id }).expect(201);
@@ -221,7 +221,7 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
     });
 
     it('editar un tema exige el actualizadoEn que se leyó (V-13) y marca el curso como modificado', async () => {
-      const { admin, cookie, cursoId } = await creadorConCurso();
+      const { cookie, cursoId } = await creadorConCurso();
       const tema = await crearTema(cookie, cursoId);
 
       const editado = await http()
@@ -239,7 +239,7 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
       expect(tarde.body.code).toBe('CURSO_MODIFICADO');
 
       const curso = await http().get(`/api/v1/cursos/${cursoId}`).set('Cookie', cookie).expect(200);
-      expect(curso.body.actualizadoPor).toBe(`${admin.username} Usuario Pruebas`);
+      expect(curso.body.actualizadoPor).toBe('Usuario Pruebas');
     });
 
     it('eliminar un tema borra sus materiales y sus archivos del disco', async () => {
@@ -320,6 +320,95 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
       await crear(undefined).expect(400);
     });
 
+    it('una página guarda sus imágenes, las entrega a quien ve el curso y borra las que se quitan (D-39)', async () => {
+      const { cookie, cursoId, sucursalA } = await creadorConCurso();
+      const tema = await crearTema(cookie, cursoId);
+      const primera = (await subir(cookie, await imagen(2000, 1000), 'motor.png').expect(201)).body;
+      const segunda = (await subir(cookie, await imagen(400, 300), 'frenos.png').expect(201)).body;
+      const img = (archivo: { id: string }, alt: string) => `<img src="/api/v1/archivos/${archivo.id}/contenido" alt="${alt}">`;
+
+      const pagina = await http()
+        .post(`/api/v1/temas/${tema.id}/materiales`)
+        .set('Cookie', cookie)
+        .send({ tipo: 'ARTICULO', titulo: 'Motor', contenido: `<p>Revisa el motor.</p>${img(primera, 'Motor')}${img(segunda, 'Frenos')}` })
+        .expect(201);
+      expect(pagina.body.contenido).toContain(`src="/api/v1/archivos/${primera.id}/contenido" alt="Motor"`);
+      const ligadas = await e2e.dataSource.query(`SELECT archivo_id FROM materiales_imagenes WHERE material_id = $1`, [pagina.body.id]);
+      expect(ligadas.map((f: { archivo_id: string }) => f.archivo_id)).toEqual(expect.arrayContaining([primera.id, segunda.id]));
+      expect(ligadas).toHaveLength(2);
+
+      //la ve quien ve el curso, y nadie mas
+      const vista = await http().get(`/api/v1/archivos/${primera.id}/contenido`).set('Cookie', cookie).buffer(true).expect(200);
+      expect(await sharp(vista.body as Buffer).metadata()).toMatchObject({ width: 1280, format: 'webp' });
+      const otro = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_GESTIONAR], sucursalIds: [sucursalA.id] });
+      const cookieOtro = await iniciarSesion(e2e.app, otro);
+      await http().get(`/api/v1/archivos/${primera.id}/contenido`).set('Cookie', cookieOtro).expect(404);
+
+      //ya en uso: no se cancela, no sirve para otro material y la limpieza diaria no la toca
+      await http().delete(`/api/v1/archivos/${primera.id}`).set('Cookie', cookie).expect(409);
+      const robada = await http()
+        .post(`/api/v1/temas/${tema.id}/materiales`)
+        .set('Cookie', cookie)
+        .send({ tipo: 'ARTICULO', titulo: 'Copia', contenido: img(primera, 'Motor') })
+        .expect(422);
+      expect(robada.body.code).toBe('ARCHIVO_NO_DISPONIBLE');
+      await e2e.dataSource.query(`UPDATE archivos SET creado_en = now() - interval '2 days'`);
+      await e2e.app.get(ArchivosService).limpiarSinUsar();
+      await http().get(`/api/v1/archivos/${primera.id}/contenido`).set('Cookie', cookie).expect(200);
+
+      //al quitar una imagen se borra su archivo
+      const editada = await http()
+        .patch(`/api/v1/materiales/${pagina.body.id}`)
+        .set('Cookie', cookie)
+        .send({ contenido: `<p>Revisa el motor.</p>${img(segunda, 'Frenos')}`, actualizadoEn: pagina.body.actualizadoEn })
+        .expect(200);
+      expect(editada.body.contenido).not.toContain(primera.id);
+      await http().get(`/api/v1/archivos/${primera.id}/contenido`).set('Cookie', cookie).expect(404);
+      await http().get(`/api/v1/archivos/${segunda.id}/contenido`).set('Cookie', cookie).expect(200);
+
+      //al borrar la pagina se borran las que quedaban
+      await http().delete(`/api/v1/materiales/${pagina.body.id}`).set('Cookie', cookie).expect(204);
+      expect(await e2e.dataSource.query(`SELECT id FROM archivos WHERE id = $1`, [segunda.id])).toEqual([]);
+    });
+
+    it('una página solo con imágenes es válida y no suma tiempo; con una imagen externa o un PDF, no', async () => {
+      const { cookie, cursoId } = await creadorConCurso();
+      const tema = await crearTema(cookie, cursoId);
+      const crear = (contenido: string) =>
+        http().post(`/api/v1/temas/${tema.id}/materiales`).set('Cookie', cookie).send({ tipo: 'ARTICULO', titulo: 'Fotos', contenido });
+      const foto = (await subir(cookie, await imagen(300, 200), 'a.png').expect(201)).body;
+      const pdf = (await subir(cookie, pdfConTexto('Hola'), 'a.pdf').expect(201)).body;
+
+      const soloImagen = await crear(`<img src="/api/v1/archivos/${foto.id}/contenido" alt="Taller">`).expect(201);
+      expect(soloImagen.body.duracionSegundos).toBe(0);
+      expect((await crear('<img src="https://otro.com/a.png" alt="x">').expect(422)).body.code).toBe('ARTICULO_VACIO');
+      const conPdf = await crear(`<p>Hola</p><img src="/api/v1/archivos/${pdf.id}/contenido" alt="x">`).expect(422);
+      expect(conPdf.body.code).toBe('ARCHIVO_TIPO_NO_COINCIDE');
+    });
+
+    it('eliminar un tema o un curso en borrador borra también las imágenes de sus páginas', async () => {
+      const { cookie, cursoId } = await creadorConCurso();
+      const tema = await crearTema(cookie, cursoId);
+      const otroTema = await crearTema(cookie, cursoId, 'Cierre');
+      const conImagen = async (temaId: string) => {
+        const foto = (await subir(cookie, await imagen(300, 200), 'a.png').expect(201)).body;
+        await http()
+          .post(`/api/v1/temas/${temaId}/materiales`)
+          .set('Cookie', cookie)
+          .send({ tipo: 'ARTICULO', titulo: 'Fotos', contenido: `<img src="/api/v1/archivos/${foto.id}/contenido" alt="a">` })
+          .expect(201);
+        return foto.id as string;
+      };
+      const delTema = await conImagen(tema.id);
+      const delCurso = await conImagen(otroTema.id);
+
+      await http().delete(`/api/v1/temas/${tema.id}`).set('Cookie', cookie).expect(204);
+      expect(await e2e.dataSource.query(`SELECT id FROM archivos WHERE id = $1`, [delTema])).toEqual([]);
+
+      await http().delete(`/api/v1/cursos/${cursoId}`).set('Cookie', superCookie).expect(204);
+      expect(await e2e.dataSource.query(`SELECT id FROM archivos WHERE id = $1`, [delCurso])).toEqual([]);
+    });
+
     it('reemplazar el archivo borra el anterior; reordena dentro del tema', async () => {
       const { cookie, cursoId } = await creadorConCurso();
       const tema = await crearTema(cookie, cursoId);
@@ -358,7 +447,7 @@ describe('Temas y materiales (HU-15, I3.2)', () => {
       const material = await crearMaterialPdf(cookie, tema.id);
 
       const otro = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_GESTIONAR], sucursalIds: [sucursalA.id] });
-      const cookieOtro = await iniciarSesion(e2e.app, otro.username);
+      const cookieOtro = await iniciarSesion(e2e.app, otro);
       await http().get(`/api/v1/cursos/${cursoId}/temas`).set('Cookie', cookieOtro).expect(404);
       await http().post(`/api/v1/cursos/${cursoId}/temas`).set('Cookie', cookieOtro).send({ titulo: 'Intruso' }).expect(404);
       await http().delete(`/api/v1/materiales/${material.id}`).set('Cookie', cookieOtro).expect(404);

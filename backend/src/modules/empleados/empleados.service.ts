@@ -41,7 +41,7 @@ export class EmpleadosService {
   }
 
   // RF-03.1: la cuenta y los datos laborales se guardan juntos o no se guarda nada.
-  // Si el numero ya existe en la empresa, el UNIQUE de la base responde 409 (D-34).
+  // Si el numero ya existe en la empresa, el UNIQUE de la base responde 409.
   async crear(datos: CrearEmpleadoDto, actor: UsuarioSesion): Promise<EmpleadoResponseDto> {
     const sucursal = await this.alcanceService.exigirSucursal(actor.alcance, datos.sucursalId);
     await this.catalogoService.exigirPuestoActivo(datos.puestoId);
@@ -51,6 +51,8 @@ export class EmpleadosService {
         {
           rol: ROLES.EMPLEADO,
           sucursalId: sucursal.id,
+          empresaId: sucursal.empresaId,
+          numeroEmpleado: datos.numeroEmpleado,
           nombres: datos.nombres,
           apellidoPaterno: datos.apellidoPaterno,
           apellidoMaterno: datos.apellidoMaterno,
@@ -62,8 +64,6 @@ export class EmpleadosService {
       const empleado = await this.empleadosRepository.crear(
         {
           usuarioId: usuario.id,
-          empresaId: sucursal.empresaId,
-          numeroEmpleado: datos.numeroEmpleado,
           puestoId: datos.puestoId,
           fechaIngreso: datos.fechaIngreso,
           creadoPor: actor.id,
@@ -76,14 +76,14 @@ export class EmpleadosService {
   }
 
   // RF-03.3: datos, puesto y sucursal. El traslado es solo dentro de la misma empresa, y la sucursal
-  // nueva tambien debe estar en el alcance; asi empleados.empresa_id sigue siendo la de su sucursal (V-03).
+  // nueva tambien debe estar en el alcance; asi usuarios.empresa_id sigue siendo la de su sucursal (V-03).
   async actualizar(id: string, datos: ActualizarEmpleadoDto, actor: UsuarioSesion): Promise<EmpleadoResponseDto> {
     const empleado = await this.buscarEnAlcance(id, actor);
     const usuario = await this.usuariosService.obtenerGestionable(empleado.usuarioId, actor);
 
     if (datos.sucursalId !== undefined && datos.sucursalId !== usuario.sucursalId) {
       const nueva = await this.alcanceService.exigirSucursal(actor.alcance, datos.sucursalId);
-      if (nueva.empresaId !== empleado.empresaId) {
+      if (nueva.empresaId !== usuario.empresaId) {
         throw new UnprocessableEntityException({
           message: 'Solo se puede cambiar a una sucursal de la misma empresa. Entre empresas se da de baja y de alta.',
           code: 'TRASLADO_OTRA_EMPRESA',
@@ -95,7 +95,7 @@ export class EmpleadosService {
       await this.catalogoService.exigirPuestoActivo(datos.puestoId);
       empleado.puestoId = datos.puestoId;
     }
-    if (datos.numeroEmpleado !== undefined) empleado.numeroEmpleado = datos.numeroEmpleado;
+    if (datos.numeroEmpleado !== undefined) usuario.numeroEmpleado = datos.numeroEmpleado;
     if (datos.fechaIngreso !== undefined) empleado.fechaIngreso = datos.fechaIngreso;
     if (datos.nombres !== undefined) usuario.nombres = datos.nombres;
     if (datos.apellidoPaterno !== undefined) usuario.apellidoPaterno = datos.apellidoPaterno;

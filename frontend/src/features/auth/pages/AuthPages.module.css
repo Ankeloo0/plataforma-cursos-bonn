@@ -22,19 +22,6 @@
   margin-top: var(--esp-10);
 }
 
-.pestanasAcceso {
-  margin-top: var(--esp-8);
-}
-
-/* En el acceso las dos pestanas ocupan el mismo ancho */
-.pestanasAcceso > button {
-  flex: 1;
-}
-
-[role='tabpanel'] > .formulario {
-  margin-top: var(--esp-8);
-}
-
 .grupo {
   display: flex;
   flex-direction: column;

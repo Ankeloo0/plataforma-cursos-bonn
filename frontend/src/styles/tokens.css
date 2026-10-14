@@ -19,6 +19,7 @@
   /* Superficies y texto */
   --fondo: #ffffff;
   --fondo-secundario: var(--gris-50);
+  --fondo-terciario: var(--gris-400);
   --texto: var(--gris-900);
   --texto-secundario: var(--gris-600);
   --texto-terciario: var(--gris-500);

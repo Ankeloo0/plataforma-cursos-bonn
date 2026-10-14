@@ -133,7 +133,15 @@ export function AdministradorPage() {
             <div className={styles.identidad}>
               <h1 className="titulo-pagina">{nombreAdministrador(admin)}</h1>
               <div className={styles.identidadDatos}>
-                <span>{admin.username}</span>
+                <span>
+                  {admin.numeroEmpleado ? (
+                    <>
+                      <span className="cifras-tabulares">No. {admin.numeroEmpleado}</span> · {admin.empresa?.nombre}
+                    </>
+                  ) : (
+                    'Sin número de empleado'
+                  )}
+                </span>
                 <EstadoCuenta cuenta={admin} />
               </div>
             </div>

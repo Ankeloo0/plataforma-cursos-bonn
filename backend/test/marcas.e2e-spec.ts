@@ -16,7 +16,7 @@ describe('Marcas (HU-50)', () => {
 
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)).username);
+    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)));
   });
 
   afterAll(async () => {
@@ -64,8 +64,8 @@ describe('Marcas (HU-50)', () => {
   it('un administrador con "Gestionar marcas" las gestiona; sin el permiso solo las lista', async () => {
     const conPermiso = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.MARCAS_GESTIONAR] });
     const sinPermiso = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.REPORTES_VER] });
-    const cookieCon = await iniciarSesion(e2e.app, conPermiso.username);
-    const cookieSin = await iniciarSesion(e2e.app, sinPermiso.username);
+    const cookieCon = await iniciarSesion(e2e.app, conPermiso);
+    const cookieSin = await iniciarSesion(e2e.app, sinPermiso);
 
     const creada = await http().post('/api/v1/marcas').set('Cookie', cookieCon).send({ nombre: 'Seat' }).expect(201);
     expect(creada.body.creadoPor).toBe('Usuario Pruebas');

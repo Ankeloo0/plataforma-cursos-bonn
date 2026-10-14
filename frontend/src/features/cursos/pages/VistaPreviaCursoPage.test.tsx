@@ -92,16 +92,19 @@ describe('Vista previa del curso (HU-16)', () => {
     vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
     abrir();
 
-    expect(await screen.findByRole('heading', { name: 'Antes de empezar' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '1.1 Antes de empezar' })).toBeInTheDocument();
     expect(screen.getByText(/Aquí no se registra avance/)).toBeInTheDocument();
     expect(screen.getByText('Obligatorio')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Equipo' })).toBeInTheDocument();
-    expect(screen.getByText('Material 1 de 2 · Artículo · 4 min')).toBeInTheDocument();
+    expect(screen.getByText('Material 1 de 2 · Página · 4 min')).toBeInTheDocument();
 
     const navegacion = screen.getByRole('navigation', { name: 'Temas del curso' });
     expect(within(navegacion).queryByText('Tema oculto')).not.toBeInTheDocument();
     expect(within(navegacion).queryByText('Borrador interno')).not.toBeInTheDocument();
     expect(within(navegacion).getByRole('button', { name: /Introducción/ })).toHaveAttribute('aria-current', 'step');
+    //los materiales visibles son subtemas numerados con su tema
+    const materiales = within(navegacion).getByRole('list', { name: 'Materiales del tema 1' });
+    expect(within(materiales).getAllByRole('button').map((b) => b.textContent)).toEqual(['1.1 Antes de empezar', '1.2 Manual de VW']);
   });
 
   it('"Siguiente material" recorre el curso y pasa al tema siguiente', async () => {
@@ -110,19 +113,19 @@ describe('Vista previa del curso (HU-16)', () => {
     vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
     abrir();
 
-    await screen.findByRole('heading', { name: 'Antes de empezar' });
+    await screen.findByRole('heading', { name: '1.1 Antes de empezar' });
     expect(screen.queryByRole('button', { name: 'Material anterior' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente material' }));
-    expect(screen.getByRole('heading', { name: 'Manual de VW' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '1.2 Manual de VW' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Abrir enlace (se abre en otra pestaña)' })).toHaveAttribute('href', 'https://www.vw.com.mx/manual');
 
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente material' }));
     expect(screen.getByRole('heading', { name: 'Tema 2 · Herramientas' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Siguiente material' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Antes de empezar' }));
-    expect(screen.getByRole('heading', { name: 'Antes de empezar' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '1.1 Antes de empezar' }));
+    expect(screen.getByRole('heading', { name: '1.1 Antes de empezar' })).toBeInTheDocument();
   });
 
   it('cada tema se despliega y se pliega para mostrar sus materiales', async () => {
@@ -131,22 +134,22 @@ describe('Vista previa del curso (HU-16)', () => {
     vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
     abrir();
 
-    await screen.findByRole('heading', { name: 'Antes de empezar' });
+    await screen.findByRole('heading', { name: '1.1 Antes de empezar' });
     const navegacion = screen.getByRole('navigation', { name: 'Temas del curso' });
     const introduccion = within(navegacion).getByRole('button', { name: /1\. Introducción/ });
     const herramientas = within(navegacion).getByRole('button', { name: /2\. Herramientas/ });
     expect(introduccion).toHaveAttribute('aria-expanded', 'true');
     expect(herramientas).toHaveAttribute('aria-expanded', 'false');
-    expect(within(navegacion).queryByRole('button', { name: 'Catálogo' })).not.toBeInTheDocument();
+    expect(within(navegacion).queryByRole('button', { name: '2.1 Catálogo' })).not.toBeInTheDocument();
 
     fireEvent.click(herramientas);
     expect(herramientas).toHaveAttribute('aria-expanded', 'true');
-    fireEvent.click(within(navegacion).getByRole('button', { name: 'Catálogo' }));
+    fireEvent.click(within(navegacion).getByRole('button', { name: '2.1 Catálogo' }));
     expect(screen.getByRole('heading', { name: 'Tema 2 · Herramientas' })).toBeInTheDocument();
 
     fireEvent.click(introduccion);
     expect(introduccion).toHaveAttribute('aria-expanded', 'false');
-    expect(within(navegacion).queryByRole('button', { name: 'Antes de empezar' })).not.toBeInTheDocument();
+    expect(within(navegacion).queryByRole('button', { name: '1.1 Antes de empezar' })).not.toBeInTheDocument();
   });
 
   it('sin contenido visible invita a volver al editor', async () => {

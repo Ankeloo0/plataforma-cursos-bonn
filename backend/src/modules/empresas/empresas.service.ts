@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PaginatedResponseDto } from '../../common/dto/paginated-response.dto.js';
 import type { ReferenciaDto } from '../../common/dto/referencia.dto.js';
 import type { ActualizarEmpresaDto, CrearEmpresaDto, QueryEmpresasDto } from './dto/empresa.dto.js';
@@ -17,7 +17,7 @@ export class EmpresasService {
     return PaginatedResponseDto.crear(empresas.map((e) => EmpresaResponseDto.desde(e)), total, filtros);
   }
 
-  // Lista publica del inicio de sesion del empleado: solo id y nombre (D-34)
+  // Lista publica del inicio de sesion: solo id y nombre
   async listarParaLogin(): Promise<ReferenciaDto[]> {
     const empresas = await this.empresasRepository.listarActivas();
     return empresas.map((e) => ({ id: e.id, nombre: e.nombre }));
@@ -50,17 +50,36 @@ export class EmpresasService {
     return this.obtener(id);
   }
 
-  // RN-00.3: con la empresa inactiva sus empleados no entran; las sesiones abiertas se rechazan
+  // RN-00.3: con la empresa inactiva nadie registrado en ella entra; las sesiones abiertas se rechazan
   // en la siguiente peticion porque la estrategia JWT la revisa cada vez. Sus sucursales dejan
   // de contar en el alcance de los administradores.
   async cambiarEstado(id: string, activo: boolean, actorId: string): Promise<EmpresaResponseDto> {
     const empresa = await this.buscar(id);
+    //sin esta regla nadie podria volver a entrar a la plataforma
+    if (!activo && empresa.activo && (await this.empresasRepository.esDelSuperusuario(id))) {
+      throw new ConflictException({
+        message: 'No se puede desactivar la empresa del superusuario.',
+        code: 'EMPRESA_DEL_SUPERUSUARIO',
+      });
+    }
     if (empresa.activo !== activo) {
       empresa.activo = activo;
       empresa.actualizadoPor = actorId;
       await this.empresasRepository.guardar(empresa);
     }
     return this.obtener(id);
+  }
+
+  //la empresa del numero de empleado de un administrador
+  async exigirActiva(id: string): Promise<Empresa> {
+    const empresa = await this.empresasRepository.buscarPorId(id);
+    if (!empresa || !empresa.activo) {
+      throw new UnprocessableEntityException({
+        message: empresa ? 'Esa empresa está desactivada. Elige otra o actívala primero.' : 'La empresa elegida no existe.',
+        code: empresa ? 'EMPRESA_INACTIVA' : 'EMPRESA_NO_ENCONTRADA',
+      });
+    }
+    return empresa;
   }
 
   async buscar(id: string): Promise<Empresa> {

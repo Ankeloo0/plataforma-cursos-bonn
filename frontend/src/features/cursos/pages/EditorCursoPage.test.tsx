@@ -103,8 +103,16 @@ describe('Editor de contenido del curso', () => {
     expect(within(plan).getByRole('heading', { name: 'Introducción' })).toBeInTheDocument();
     expect(screen.getByText('Video · 12 min')).toBeInTheDocument();
     expect(screen.getByText('PDF · 2.3 MB')).toBeInTheDocument();
+    //cada material es un subtema numerado con su tema, sin icono de tipo
+    const materiales = within(plan).getByRole('list', { name: 'Materiales del tema 1' });
+    expect(within(materiales).getAllByRole('listitem').map((li) => li.querySelector('span')?.textContent)).toEqual([
+      '1.1 Bienvenida',
+      '1.2 Reglamento',
+      '1.3 Manual',
+      '1.4 Recepción del vehículo',
+    ]);
     expect(screen.getByText('Enlace · vw.com.mx')).toBeInTheDocument();
-    expect(screen.getByText('Artículo · 4 min')).toBeInTheDocument();
+    expect(screen.getByText('Página · 4 min')).toBeInTheDocument();
     expect(screen.getByText('Oculto')).toBeInTheDocument();
     expect(screen.getByText('Sin materiales')).toBeInTheDocument();
     expect(screen.getByText('1 h 25 min')).toBeInTheDocument();
@@ -230,7 +238,7 @@ describe('Editor de contenido del curso', () => {
     expect(subir).not.toHaveBeenCalled();
   });
 
-  it('un artículo nuevo no se guarda sin texto y el panel se ensancha para escribirlo', async () => {
+  it('una página nueva no se guarda sin contenido y el panel se ensancha para escribirla', async () => {
     conSesion({ permisos: ['CURSOS_GESTIONAR'] });
     vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
     vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
@@ -239,19 +247,19 @@ describe('Editor de contenido del curso', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Agregar material al tema 2' }));
     const panel = screen.getByRole('dialog', { name: 'Nuevo material' });
-    fireEvent.click(within(panel).getByRole('radio', { name: /Artículo/ }));
+    fireEvent.click(within(panel).getByRole('radio', { name: /Página/ }));
 
-    expect(within(panel).getByRole('toolbar', { name: 'Formato del artículo' })).toBeInTheDocument();
+    expect(within(panel).getByRole('toolbar', { name: 'Formato de la página' })).toBeInTheDocument();
     expect(panel.querySelector('[data-panel-amplio]')).not.toBeNull();
     expect(within(panel).getByText('Sin texto todavía')).toBeInTheDocument();
     fireEvent.change(within(panel).getByLabelText(/Título/), { target: { value: 'Recepción' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Agregar material' }));
 
-    expect(await within(panel).findByText('Escribe el contenido del artículo.')).toBeInTheDocument();
+    expect(await within(panel).findByText('Escribe el contenido de la página.')).toBeInTheDocument();
     expect(crear).not.toHaveBeenCalled();
   });
 
-  it('al editar un artículo muestra su formato y envía su contenido', async () => {
+  it('al editar una página muestra su formato y envía su contenido', async () => {
     conSesion({ permisos: ['CURSOS_GESTIONAR'] });
     vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
     vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
@@ -275,6 +283,75 @@ describe('Editor de contenido del curso', () => {
         '2026-10-08T15:00:00Z',
       ),
     );
+  });
+
+  it('sube una imagen, pide su descripción y la inserta en la página (D-39)', async () => {
+    conSesion({ permisos: ['CURSOS_GESTIONAR'] });
+    vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
+    vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+    const subir = vi.spyOn(contenidoService, 'subirArchivo').mockImplementation(async (_archivo, alAvanzar) => {
+      alAvanzar(100);
+      return { id: 'img-1', nombreOriginal: 'motor.png', mimeType: 'image/webp', tamanoBytes: 2048, tipoMaterial: 'IMAGEN' };
+    });
+    const crear = vi.spyOn(contenidoService, 'crearMaterial').mockResolvedValue(material({}));
+    abrir();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar material al tema 2' }));
+    const panel = screen.getByRole('dialog', { name: 'Nuevo material' });
+    fireEvent.click(within(panel).getByRole('radio', { name: /Página/ }));
+    fireEvent.change(within(panel).getByLabelText(/Título/), { target: { value: 'Motor' } });
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Imagen' }));
+    const entrada = panel.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(entrada, { target: { files: [new File(['x'], 'motor.png', { type: 'image/png' })] } });
+
+    const descripcion = await within(panel).findByLabelText('Descripción de la imagen');
+    fireEvent.click(within(panel).getByRole('button', { name: 'Insertar imagen' }));
+    expect(await within(panel).findByText(/Describe la imagen en pocas palabras/)).toBeInTheDocument();
+
+    fireEvent.change(descripcion, { target: { value: 'Motor TSI' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Insertar imagen' }));
+    expect(await within(panel).findByRole('img', { name: 'Motor TSI' })).toHaveAttribute('src', '/api/v1/archivos/img-1/contenido');
+    expect(within(panel).getByText('Sin texto todavía · 1 imagen')).toBeInTheDocument();
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Agregar material' }));
+    await waitFor(() =>
+      expect(crear).toHaveBeenCalledWith(
+        't2',
+        'ARTICULO',
+        expect.objectContaining({ contenido: expect.stringContaining('src="/api/v1/archivos/img-1/contenido" alt="Motor TSI"') }),
+      ),
+    );
+    expect(subir).toHaveBeenCalledTimes(1);
+  });
+
+  it('al cancelar una imagen subida que no se insertó, la descarta', async () => {
+    conSesion({ permisos: ['CURSOS_GESTIONAR'] });
+    vi.spyOn(cursosService, 'obtener').mockResolvedValue(curso());
+    vi.spyOn(contenidoService, 'listarTemas').mockResolvedValue(temas());
+    vi.spyOn(contenidoService, 'subirArchivo').mockResolvedValue({
+      id: 'img-2',
+      nombreOriginal: 'a.png',
+      mimeType: 'image/webp',
+      tamanoBytes: 10,
+      tipoMaterial: 'IMAGEN',
+    });
+    const descartar = vi.spyOn(contenidoService, 'descartarArchivo').mockResolvedValue();
+    abrir();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar material al tema 2' }));
+    const panel = screen.getByRole('dialog', { name: 'Nuevo material' });
+    fireEvent.click(within(panel).getByRole('radio', { name: /Página/ }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Imagen' }));
+    fireEvent.change(panel.querySelector('input[type="file"]') as HTMLInputElement, {
+      target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] },
+    });
+    await within(panel).findByLabelText('Descripción de la imagen');
+    //el primer Cancelar es el del panel de la imagen; el otro es el del material
+    fireEvent.click(within(panel).getAllByRole('button', { name: 'Cancelar' })[0]);
+
+    expect(descartar).toHaveBeenCalledWith('img-2');
+    expect(within(panel).queryByLabelText('Descripción de la imagen')).not.toBeInTheDocument();
   });
 
   it('al editar los datos del curso envía el actualizadoEn que leyó y muestra el aviso si otro guardó antes (V-13)', async () => {

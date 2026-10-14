@@ -2,13 +2,8 @@ import { apiClient } from '../../../services/api/client';
 import type { EmpresaLogin, Perfil } from '../types/auth.types';
 
 export const authService = {
-  async iniciarSesion(username: string, password: string): Promise<Perfil> {
-    const { data } = await apiClient.post<Perfil>('/auth/login', { username, password });
-    return data;
-  },
-
-  async iniciarSesionEmpleado(empresaId: string, numeroEmpleado: string, password: string): Promise<Perfil> {
-    const { data } = await apiClient.post<Perfil>('/auth/login-empleado', { empresaId, numeroEmpleado, password });
+  async iniciarSesion(empresaId: string, numeroEmpleado: string, password: string): Promise<Perfil> {
+    const { data } = await apiClient.post<Perfil>('/auth/login', { empresaId, numeroEmpleado, password });
     return data;
   },
 

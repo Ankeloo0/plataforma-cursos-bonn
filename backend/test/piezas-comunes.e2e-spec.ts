@@ -95,7 +95,7 @@ describe('Piezas comunes a través de HTTP', () => {
     await http().get('/api/v1/prueba/sin-roles').expect(401);
 
     const admin = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.REPORTES_VER] });
-    const cookie = await iniciarSesion(e2e.app, admin.username);
+    const cookie = await iniciarSesion(e2e.app, admin);
     await http().get('/api/v1/prueba/sin-roles').set('Cookie', cookie).expect(403);
     await http().get('/api/v1/prueba/solo-admin').set('Cookie', cookie).expect(200);
   });
@@ -103,8 +103,8 @@ describe('Piezas comunes a través de HTTP', () => {
   it('exige el permiso declarado y no deja abierta una ruta de administrador sin permisos declarados (PermisosGuard)', async () => {
     const sinPermisos = await crearAdministrador(e2e.dataSource);
     const conTodo = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.REPORTES_VER, PERMISOS.MARCAS_GESTIONAR] });
-    const cookieSin = await iniciarSesion(e2e.app, sinPermisos.username);
-    const cookieCon = await iniciarSesion(e2e.app, conTodo.username);
+    const cookieSin = await iniciarSesion(e2e.app, sinPermisos);
+    const cookieCon = await iniciarSesion(e2e.app, conTodo);
 
     const respuesta = await http().get('/api/v1/prueba/solo-admin').set('Cookie', cookieSin).expect(403);
     expect(respuesta.body.code).toBe('SIN_PERMISO');

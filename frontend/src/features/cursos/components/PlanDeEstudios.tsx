@@ -18,7 +18,7 @@ import { Button } from '../../../components/ui/Button';
 import { Chip } from '../../../components/ui/Chip';
 import { MenuAcciones, type Accion } from '../../../components/ui/MenuAcciones';
 import type { Material, Tema } from '../types/contenido.types';
-import { detalleMaterial, TIPOS_MATERIAL } from '../utils/material';
+import { detalleMaterial } from '../utils/material';
 import styles from './PlanDeEstudios.module.css';
 
 export interface PropsPlan {
@@ -159,8 +159,14 @@ function BloqueTema({
           alReordenar={(ids) => alReordenarMateriales(tema.id, ids)}
           etiqueta={`Materiales del tema ${numero}`}
         >
-          {tema.materiales.map((material) => (
-            <FilaMaterial key={material.id} material={material} editable={editable} acciones={accionesMaterial(material)} />
+          {tema.materiales.map((material, i) => (
+            <FilaMaterial
+              key={material.id}
+              material={material}
+              numero={`${numero}.${i + 1}`}
+              editable={editable}
+              acciones={accionesMaterial(material)}
+            />
           ))}
         </ListaOrdenable>
       ) : (
@@ -178,17 +184,28 @@ function BloqueTema({
   );
 }
 
-function FilaMaterial({ material, editable, acciones }: { material: Material; editable: boolean; acciones: Accion[] }) {
-  const { ref, estilo, arrastrando, asa } = useOrdenable(material.id, `Mover ${material.titulo}`);
-  const Icono = TIPOS_MATERIAL[material.tipo].icono;
+//cada material es un subtema numerado con el numero de su tema: 1.1, 1.2...
+function FilaMaterial({
+  material,
+  numero,
+  editable,
+  acciones,
+}: {
+  material: Material;
+  numero: string;
+  editable: boolean;
+  acciones: Accion[];
+}) {
+  const { ref, estilo, arrastrando, asa } = useOrdenable(material.id, `Mover ${numero} ${material.titulo}`);
   const estadoArchivo = material.archivo?.estado;
 
   return (
     <li ref={ref} style={estilo} className={`${styles.material} ${arrastrando ? styles.arrastrando : ''}`}>
       {editable && asa}
-      <Icono className={styles.iconoTipo} size={20} strokeWidth={1.75} aria-hidden="true" />
       <div className={`${styles.datosMaterial} ${material.activo ? '' : styles.oculto}`}>
-        <span className={styles.tituloMaterial}>{material.titulo}</span>
+        <span className={styles.tituloMaterial}>
+          <span className={`${styles.numeroMaterial} cifras-tabulares`}>{numero}</span> {material.titulo}
+        </span>
         <span className={`${styles.detalle} cifras-tabulares`}>{detalleMaterial(material)}</span>
       </div>
       <div className={styles.chips}>

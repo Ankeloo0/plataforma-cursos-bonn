@@ -2,6 +2,19 @@ import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, IsUUID, M
 import { TODOS_LOS_PERMISOS, type Permiso } from '../../../common/constants/permisos.js';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 import { ABooleano, Recortar } from '../../../common/utils/transformaciones.js';
+import { ActualizarCuentaDto, CrearCuentaDto } from '../../usuarios/dto/datos-cuenta.dto.js';
+
+//la empresa del numero de empleado; no limita las sucursales que administra
+export class CrearAdministradorDto extends CrearCuentaDto {
+  @IsUUID('all', { message: 'Elige la empresa.' })
+  empresaId: string;
+}
+
+export class ActualizarAdministradorDto extends ActualizarCuentaDto {
+  @IsOptional()
+  @IsUUID('all', { message: 'Elige la empresa.' })
+  empresaId?: string;
+}
 
 export class QueryAdministradoresDto extends PaginationQueryDto {
   @Recortar()

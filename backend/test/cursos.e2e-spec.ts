@@ -4,7 +4,7 @@ import { PERMISOS } from '../src/common/constants/permisos.js';
 import { crearAppE2e, type AppE2e } from './e2e/app.js';
 import { limpiarBase } from './e2e/base-de-datos.js';
 import { crearAdministrador, crearCurso, crearDosSucursales, crearEmpleado, obtenerSuperusuario } from './e2e/fabricas.js';
-import { iniciarSesion, iniciarSesionEmpleado } from './e2e/sesion.js';
+import { iniciarSesion } from './e2e/sesion.js';
 
 const imagen = (width: number, height: number) =>
   sharp({ create: { width, height, channels: 3, background: '#1060a0' } }).jpeg().toBuffer();
@@ -20,7 +20,7 @@ describe('Cursos (HU-14, I3.1)', () => {
 
   beforeEach(async () => {
     await limpiarBase(e2e.dataSource);
-    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)).username);
+    superCookie = await iniciarSesion(e2e.app, (await obtenerSuperusuario(e2e.dataSource)));
   });
 
   afterAll(async () => {
@@ -41,12 +41,12 @@ describe('Cursos (HU-14, I3.1)', () => {
   async function creador() {
     const { sucursalA } = await crearDosSucursales(e2e.dataSource);
     const admin = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_GESTIONAR], sucursalIds: [sucursalA.id] });
-    return { admin, cookie: await iniciarSesion(e2e.app, admin.username), sucursalA };
+    return { admin, cookie: await iniciarSesion(e2e.app, admin), sucursalA };
   }
 
   describe('Crear y ver', () => {
     it('crea un curso en borrador, con duración 0 hasta tener videos y con quién lo creó (RF-04.1, RF-04.10, D-36)', async () => {
-      const { admin, cookie } = await creador();
+      const { cookie } = await creador();
 
       const creado = await http().post('/api/v1/cursos').set('Cookie', cookie).send(datosCurso()).expect(201);
       expect(creado.body).toMatchObject({
@@ -59,7 +59,7 @@ describe('Cursos (HU-14, I3.1)', () => {
         publicadoEn: null,
         portadaUrl: null,
         puedeEditar: true,
-        creadoPor: `${admin.username} Usuario Pruebas`,
+        creadoPor: 'Usuario Pruebas',
         actualizadoPor: null,
       });
 
@@ -121,11 +121,11 @@ describe('Cursos (HU-14, I3.1)', () => {
       const asignador = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_ASIGNAR], sucursalIds: [sucursalA.id] });
       const curso = await crearCurso(e2e.dataSource, { creadoPor: asignador.id });
 
-      const cookieSin = await iniciarSesion(e2e.app, sinPermiso.username);
+      const cookieSin = await iniciarSesion(e2e.app, sinPermiso);
       await http().get('/api/v1/cursos').set('Cookie', cookieSin).expect(403);
       await http().post('/api/v1/cursos').set('Cookie', cookieSin).send(datosCurso()).expect(403);
 
-      const cookieAsignador = await iniciarSesion(e2e.app, asignador.username);
+      const cookieAsignador = await iniciarSesion(e2e.app, asignador);
       const visto = await http().get(`/api/v1/cursos/${curso.id}`).set('Cookie', cookieAsignador).expect(200);
       expect(visto.body.puedeEditar).toBe(false);
       await http()
@@ -138,14 +138,14 @@ describe('Cursos (HU-14, I3.1)', () => {
     it('el empleado no entra a cursos de administración', async () => {
       const { sucursalA } = await crearDosSucursales(e2e.dataSource);
       const empleado = await crearEmpleado(e2e.dataSource, { sucursalId: sucursalA.id });
-      const cookie = await iniciarSesionEmpleado(e2e.app, empleado);
+      const cookie = await iniciarSesion(e2e.app, empleado);
       await http().get('/api/v1/cursos').set('Cookie', cookie).expect(403);
     });
   });
 
   describe('Edición con bloqueo optimista (V-13, RN-04.11)', () => {
     it('guarda los cambios y registra quién lo modificó', async () => {
-      const { admin, cookie } = await creador();
+      const { cookie } = await creador();
       const creado = await http().post('/api/v1/cursos').set('Cookie', cookie).send(datosCurso()).expect(201);
 
       const editado = await http()
@@ -158,7 +158,7 @@ describe('Cursos (HU-14, I3.1)', () => {
         esObligatorio: false,
         fechaLimite: null,
         calificacionMinima: 80,
-        actualizadoPor: `${admin.username} Usuario Pruebas`,
+        actualizadoPor: 'Usuario Pruebas',
       });
       expect(editado.body.actualizadoEn).not.toBe(creado.body.actualizadoEn);
     });
@@ -205,7 +205,7 @@ describe('Cursos (HU-14, I3.1)', () => {
       expect(await sharp(descarga.body as Buffer).metadata()).toMatchObject({ width: 1280, height: 853 });
 
       const otro = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_GESTIONAR], sucursalIds: [sucursalA.id] });
-      const cookieOtro = await iniciarSesion(e2e.app, otro.username);
+      const cookieOtro = await iniciarSesion(e2e.app, otro);
       await http().get(portadaUrl).set('Cookie', cookieOtro).expect(404);
       await http().get(portadaUrl).set('Cookie', superCookie).expect(200);
     });
@@ -292,7 +292,7 @@ describe('Cursos (HU-14, I3.1)', () => {
         permisos: [PERMISOS.CURSOS_GESTIONAR, PERMISOS.CURSOS_PUBLICAR],
         sucursalIds: [sucursalA.id],
       });
-      const cookie = await iniciarSesion(e2e.app, admin.username);
+      const cookie = await iniciarSesion(e2e.app, admin);
       const curso = await http().post('/api/v1/cursos').set('Cookie', cookie).send(datosCurso()).expect(201);
       expect(curso.body).toMatchObject({ puedePublicar: false, puedeArchivar: true });
 
@@ -308,7 +308,7 @@ describe('Cursos (HU-14, I3.1)', () => {
       const ajeno = await crearCurso(e2e.dataSource, { estado: 'PUBLICADO' });
       const { sucursalA } = await crearDosSucursales(e2e.dataSource);
       const publicador = await crearAdministrador(e2e.dataSource, { permisos: [PERMISOS.CURSOS_PUBLICAR], sucursalIds: [sucursalA.id] });
-      const cookiePublicador = await iniciarSesion(e2e.app, publicador.username);
+      const cookiePublicador = await iniciarSesion(e2e.app, publicador);
       await http().post(ruta(ajeno.id, 'archivar')).set('Cookie', cookiePublicador).expect(404);
     });
 

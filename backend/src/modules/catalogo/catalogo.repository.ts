@@ -41,7 +41,7 @@ function subconsultasDeUso(condicionPuesto: string): string[] {
   return [
     `(SELECT count(*) ${desde})::int`,
     `(SELECT count(DISTINCT u.sucursal_id) ${desde})::int`,
-    `(SELECT count(DISTINCT em.empresa_id) ${desde})::int`,
+    `(SELECT count(DISTINCT u.empresa_id) ${desde})::int`,
   ];
 }
 

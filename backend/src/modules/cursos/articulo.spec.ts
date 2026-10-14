@@ -1,4 +1,4 @@
-import { duracionDelArticuloSegundos, limpiarArticulo, palabrasDelArticulo } from './articulo.js';
+import { duracionDelArticuloSegundos, imagenesDelArticulo, limpiarArticulo, palabrasDelArticulo } from './articulo.js';
 
 describe('articulo', () => {
   it('conserva el formato que permite el editor', () => {
@@ -26,6 +26,31 @@ describe('articulo', () => {
       '<a href="https://vw.com" target="_blank" rel="noopener noreferrer">VW</a>',
     );
     expect(limpiarArticulo('<a href="javascript:robar()">Clic</a>')).toBe('<a target="_blank" rel="noopener noreferrer">Clic</a>');
+  });
+
+  describe('imágenes (D-39)', () => {
+    const id = '3f2b8c1e-1234-4abc-9def-0123456789ab';
+    const src = `/api/v1/archivos/${id}/contenido`;
+
+    it('conserva solo las imágenes subidas a la plataforma, con src y alt', () => {
+      expect(limpiarArticulo(`<p>Motor</p><img src="${src}" alt="Motor TSI" title="x" class="y" onerror="robar()">`)).toBe(
+        `<p>Motor</p><img src="${src}" alt="Motor TSI" />`,
+      );
+    });
+
+    it('quita las imágenes externas o con otra dirección', () => {
+      const html =
+        '<img src="https://otro.com/a.png" alt="a">' +
+        `<img src="${src}?x=1" alt="b">` +
+        '<img src="/api/v1/archivos/no-es-uuid/contenido" alt="c">' +
+        '<img src="data:image/png;base64,AAAA" alt="d">';
+      expect(limpiarArticulo(`<p>Hola</p>${html}`)).toBe('<p>Hola</p>');
+    });
+
+    it('da los archivos de las imágenes sin repetir', () => {
+      expect(imagenesDelArticulo(limpiarArticulo(`<img src="${src}" alt="a"><p>x</p><img src="${src}" alt="b">`))).toEqual([id]);
+      expect(imagenesDelArticulo('<p>Sin imágenes</p>')).toEqual([]);
+    });
   });
 
   it('cuenta las palabras sin juntar las de dos parrafos', () => {

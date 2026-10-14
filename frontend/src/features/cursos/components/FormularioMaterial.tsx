@@ -67,13 +67,13 @@ function esquemaPara(tipo: TipoMaterial) {
       tipo === 'ENLACE'
         ? z.string().trim().max(500, 'Máximo 500 caracteres.').regex(/^https?:\/\/\S+$/i, MENSAJE_URL)
         : z.string(),
-    // El editor entrega '' cuando el articulo no tiene texto
+    // El editor entrega '' cuando la pagina no tiene texto ni imagenes
     contenido:
       tipo === 'ARTICULO'
         ? z
             .string()
-            .min(1, 'Escribe el contenido del artículo.')
-            .max(ARTICULO_MAXIMO_CARACTERES, 'El artículo es demasiado largo. Divídelo en dos materiales.')
+            .min(1, 'Escribe el contenido de la página.')
+            .max(ARTICULO_MAXIMO_CARACTERES, 'La página es demasiado larga. Divídela en dos materiales.')
         : z.string(),
   });
 }

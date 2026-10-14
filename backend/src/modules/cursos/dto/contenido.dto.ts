@@ -51,7 +51,7 @@ export class OrdenDto {
 
 const URL_EXTERNA = { protocols: ['http', 'https'], require_protocol: true };
 const MENSAJE_URL = 'Escribe una dirección completa que empiece con http:// o https://.';
-const MENSAJE_ARTICULO_LARGO = 'El artículo no puede pasar de 100 000 caracteres.';
+const MENSAJE_ARTICULO_LARGO = 'La página no puede pasar de 100 000 caracteres.';
 
 const conArchivo = (tipo: TipoMaterial) => tipo !== TIPOS_MATERIAL.ENLACE && tipo !== TIPOS_MATERIAL.ARTICULO;
 
@@ -85,7 +85,7 @@ export class CrearMaterialDto {
 
   // Que tenga texto se revisa despues de limpiarlo (MaterialesService)
   @ValidateIf((dto: CrearMaterialDto) => dto.tipo === TIPOS_MATERIAL.ARTICULO)
-  @IsString({ message: 'Escribe el contenido del artículo.' })
+  @IsString({ message: 'Escribe el contenido de la página.' })
   @MaxLength(ARTICULO_MAXIMO_CARACTERES, { message: MENSAJE_ARTICULO_LARGO })
   contenido?: string;
 }
@@ -104,7 +104,7 @@ export class ActualizarMaterialDto extends PartialType(PickType(CrearMaterialDto
   urlExterna?: string;
 
   @IsOptional()
-  @IsString({ message: 'Escribe el contenido del artículo.' })
+  @IsString({ message: 'Escribe el contenido de la página.' })
   @MaxLength(ARTICULO_MAXIMO_CARACTERES, { message: MENSAJE_ARTICULO_LARGO })
   contenido?: string;
 
